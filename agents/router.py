@@ -1,6 +1,6 @@
 import re
-from enum import Enum
 from dataclasses import dataclass
+from enum import Enum
 
 
 class QueryComplexity(Enum):
@@ -75,7 +75,7 @@ def keyword_match(keyword, text):
 def classify_complexity(query: str) -> QueryComplexity:
     """Classify query complexity based on keyword matching."""
     query_lower = query.lower()
-    scores = {level: 0 for level in QueryComplexity}
+    scores = dict.fromkeys(QueryComplexity, 0)
 
     for level, keywords in COMPLEXITY_KEYWORDS.items():
         for keyword in keywords:
@@ -96,7 +96,7 @@ def classify_complexity(query: str) -> QueryComplexity:
 def classify_urgency(query: str) -> QueryUrgency:
     """Classify query urgency based on keyword matching."""
     query_lower = query.lower()
-    scores = {level: 0 for level in QueryUrgency}
+    scores = dict.fromkeys(QueryUrgency, 0)
 
     for level, keywords in URGENCY_KEYWORDS.items():
         for keyword in keywords:
@@ -142,9 +142,7 @@ def route_query(query: str) -> RoutingDecision:
 
     if urgency in (QueryUrgency.CRITICAL, QueryUrgency.HIGH):
         agent = "emergency"
-    elif complexity == QueryComplexity.COMPLEX:
-        agent = "deep"
-    elif complexity == QueryComplexity.MODERATE:
+    elif complexity == QueryComplexity.COMPLEX or complexity == QueryComplexity.MODERATE:
         agent = "deep"
     else:
         agent = "quick"

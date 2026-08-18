@@ -1,8 +1,9 @@
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 from uuid import uuid4
+
 from pymongo import MongoClient
-from config import MONGO_URI, MONGO_DB, _validate_mongo_uri
+
+from config import MONGO_DB, MONGO_URI, _validate_mongo_uri
 
 _client = None
 
@@ -50,8 +51,8 @@ class SessionMemory:
         session = {
             "session_id": str(uuid4()),
             "user_id": user_id,
-            "created_at": datetime.now(timezone.utc),
-            "last_active": datetime.now(timezone.utc),
+            "created_at": datetime.now(UTC),
+            "last_active": datetime.now(UTC),
             "system_prompt": system_prompt,
             "messages": [],
             "context": {},
@@ -64,7 +65,7 @@ class SessionMemory:
         self.sessions.insert_one(session)
         return session["session_id"]
 
-    def get_session(self, session_id: str) -> Optional[dict]:
+    def get_session(self, session_id: str) -> dict | None:
         """Get session by UUID session_id field."""
         return self.sessions.find_one({"session_id": session_id})
 
@@ -76,7 +77,7 @@ class SessionMemory:
             {
                 "$set": {
                     f"context.{safe_key}": value,
-                    "last_active": datetime.now(timezone.utc),
+                    "last_active": datetime.now(UTC),
                 },
                 "$inc": {"query_count": 1},
             },
@@ -99,7 +100,7 @@ class SessionMemory:
         messages.append({
             "role": role,
             "content": content,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         })
 
         depth = session.get("session_history_depth", 50)
@@ -111,7 +112,7 @@ class SessionMemory:
             {
                 "$set": {
                     "messages": messages,
-                    "last_active": datetime.now(timezone.utc),
+                    "last_active": datetime.now(UTC),
                 },
                 "$inc": {"query_count": 1},
             },
@@ -131,7 +132,7 @@ class SessionMemory:
             {
                 "$set": {
                     "messages": [{"role": "system", "content": summary}],
-                    "last_active": datetime.now(timezone.utc),
+                    "last_active": datetime.now(UTC),
                 },
             },
         )
@@ -145,7 +146,7 @@ class SessionMemory:
         created = session.get("created_at")
         life = session.get("session_life", 60)
         if created:
-            elapsed = (datetime.now(timezone.utc) - created).total_seconds() / 60
+            elapsed = (datetime.now(UTC) - created).total_seconds() / 60
             return elapsed > life
         return False
 
@@ -155,11 +156,11 @@ class SessionMemory:
             "session_id": session_id,
             "event_type": event_type,
             "data": data,
-            "timestamp": datetime.now(timezone.utc),
+            "timestamp": datetime.now(UTC),
         }
         self.events.insert_one(event)
 
-    def get_events(self, session_id: str, event_type: Optional[str] = None) -> list:
+    def get_events(self, session_id: str, event_type: str | None = None) -> list:
         """Get events for a session, optionally filtered by type."""
         query = {"session_id": session_id}
         if event_type:
@@ -172,7 +173,7 @@ class SessionMemory:
         query: str,
         decision: str,
         reasoning: str,
-        outcome: Optional[str] = None,
+        outcome: str | None = None,
     ):
         """Log a routing decision with reasoning."""
         record = {
@@ -181,7 +182,7 @@ class SessionMemory:
             "decision": decision,
             "reasoning": reasoning,
             "outcome": outcome,
-            "timestamp": datetime.now(timezone.utc),
+            "timestamp": datetime.now(UTC),
         }
         self.decisions.insert_one(record)
 

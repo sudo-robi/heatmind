@@ -1,4 +1,5 @@
 import os
+
 import pytest
 
 
@@ -6,6 +7,7 @@ class TestConfigLoading:
     def test_default_values(self):
         os.environ["MONGO_DB"] = "heatmind_test"
         import importlib
+
         import config
         importlib.reload(config)
         assert config.FORTYGUARD_BASE_URL == "https://api.fortyguard.com/v1"
@@ -18,6 +20,7 @@ class TestConfigLoading:
         monkeypatch.setenv("HEAT_THRESHOLD_C", "35")
         monkeypatch.setenv("HEAT_INDEX_THRESHOLD", "40")
         import importlib
+
         import config
         importlib.reload(config)
         assert config.HEAT_THRESHOLD_C == 35.0
@@ -25,18 +28,21 @@ class TestConfigLoading:
 
     def test_empty_api_key(self):
         import importlib
+
         import config
         importlib.reload(config)
         assert isinstance(config.FORTYGUARD_API_KEY, str)
 
     def test_mongo_uri_format(self):
         import importlib
+
         import config
         importlib.reload(config)
         assert config.MONGO_URI.startswith("mongodb://") or config.MONGO_URI.startswith("mongodb+srv://")
 
     def test_smtp_port_is_int(self):
         import importlib
+
         import config
         importlib.reload(config)
         assert isinstance(config.SMTP_PORT, int)
@@ -48,12 +54,14 @@ class TestConfigEdgeCases:
         monkeypatch.setenv("SMTP_PORT", "not_a_number")
         with pytest.raises(ValueError):
             import importlib
+
             import config
             importlib.reload(config)
 
     def test_negative_threshold(self, monkeypatch):
         monkeypatch.setenv("HEAT_THRESHOLD_C", "-10")
         import importlib
+
         import config
         importlib.reload(config)
         assert config.HEAT_THRESHOLD_C == -10.0
@@ -61,6 +69,7 @@ class TestConfigEdgeCases:
     def test_zero_interval(self, monkeypatch):
         monkeypatch.setenv("MONITOR_INTERVAL_MINUTES", "0")
         import importlib
+
         import config
         importlib.reload(config)
         assert config.MONITOR_INTERVAL_MINUTES == 0
@@ -68,6 +77,7 @@ class TestConfigEdgeCases:
     def test_large_threshold(self, monkeypatch):
         monkeypatch.setenv("HEAT_THRESHOLD_C", "1000")
         import importlib
+
         import config
         importlib.reload(config)
         assert config.HEAT_THRESHOLD_C == 1000.0
@@ -75,6 +85,7 @@ class TestConfigEdgeCases:
     def test_atlas_uri_format(self, monkeypatch):
         monkeypatch.setenv("MONGO_URI", "mongodb+srv://user:pass@cluster0.mongodb.net/heatmind?retryWrites=true&w=majority")
         import importlib
+
         import config
         importlib.reload(config)
         assert "mongodb+srv://" in config.MONGO_URI

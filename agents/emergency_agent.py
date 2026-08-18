@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from api.fortyguard import FortyGuardClient
 from memory.session import SessionMemory
 from utils.alerts import send_alert
@@ -52,7 +53,7 @@ class EmergencyAgent:
             "zone": zone,
             "severity": severity,
             "heat_index": heat_index,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "recommendations": recommendations,
         }
         send_alert(alert_payload)

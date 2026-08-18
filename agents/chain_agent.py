@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+
 from api.fortyguard import FortyGuardClient
 from memory.session import SessionMemory
 from utils.validation import validate_coords
@@ -174,7 +174,7 @@ class ChainAgent:
             if step.error:
                 lines.append(f"    Result: Error - {step.error}")
             elif step.result:
-                lines.append(f"    Result: Success")
+                lines.append("    Result: Success")
         lines.append("")
 
         if "env_params" in results:

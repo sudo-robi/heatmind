@@ -1,7 +1,8 @@
 import os
 import uuid
+from datetime import UTC, datetime
+
 import pytest
-from datetime import datetime, timezone
 
 # Set test env vars BEFORE any project imports (config.py reads at import time)
 os.environ.setdefault("MONGO_URI", "mongodb://localhost:27017")
@@ -75,7 +76,7 @@ def sample_alert_payload():
         "zone": "Dubai Downtown",
         "severity": "warning",
         "heat_index": 38.5,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "recommendations": [
             "Monitor conditions closely",
             "Ensure water availability",

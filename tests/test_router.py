@@ -1,10 +1,9 @@
-import pytest
 from agents.router import (
+    QueryComplexity,
+    QueryUrgency,
     classify_complexity,
     classify_urgency,
     route_query,
-    QueryComplexity,
-    QueryUrgency,
 )
 
 

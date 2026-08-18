@@ -1,18 +1,19 @@
-import json
 import logging
 import smtplib
-import requests
-from email.mime.text import MIMEText
+from datetime import UTC, datetime
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime, timezone
+from email.mime.text import MIMEText
+
+import requests
+
 from config import (
+    ALERT_EMAIL_TO,
     ALERT_WEBHOOK_URL,
+    SLACK_WEBHOOK_URL,
     SMTP_HOST,
+    SMTP_PASS,
     SMTP_PORT,
     SMTP_USER,
-    SMTP_PASS,
-    ALERT_EMAIL_TO,
-    SLACK_WEBHOOK_URL,
 )
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,7 @@ def send_slack_alert(payload: dict):
     severity = payload.get("severity", "unknown").upper()
     zone = payload.get("zone", "unknown")
     heat_index = payload.get("heat_index", "N/A")
-    timestamp = payload.get("timestamp", datetime.now(timezone.utc).isoformat())
+    timestamp = payload.get("timestamp", datetime.now(UTC).isoformat())
     recommendations = payload.get("recommendations", [])
 
     severity_colors = {
@@ -107,7 +108,7 @@ def send_email_alert(payload: dict):
     severity = html_escape(payload.get("severity", "unknown").upper())
     zone = html_escape(payload.get("zone", "unknown"))
     heat_index = html_escape(str(payload.get("heat_index", "N/A")))
-    timestamp = html_escape(payload.get("timestamp", datetime.now(timezone.utc).isoformat()))
+    timestamp = html_escape(payload.get("timestamp", datetime.now(UTC).isoformat()))
     recommendations = payload.get("recommendations", [])
 
     subject = f"HeatMind Alert — {severity} — {zone}"
@@ -174,7 +175,7 @@ def send_console_alert(payload: dict):
     severity = payload.get("severity", "unknown").upper()
     zone = payload.get("zone", "unknown")
     heat_index = payload.get("heat_index", "N/A")
-    timestamp = payload.get("timestamp", datetime.now(timezone.utc).isoformat())
+    timestamp = payload.get("timestamp", datetime.now(UTC).isoformat())
     recommendations = payload.get("recommendations", [])
 
     print(f"\n{'='*60}")
@@ -182,7 +183,7 @@ def send_console_alert(payload: dict):
     print(f"Zone: {zone}")
     print(f"Heat Index: {heat_index}°C")
     print(f"Time: {timestamp}")
-    print(f"\nRecommendations:")
+    print("\nRecommendations:")
     for i, rec in enumerate(recommendations, 1):
         print(f"  {i}. {rec}")
     print(f"{'='*60}\n")
@@ -190,7 +191,7 @@ def send_console_alert(payload: dict):
 
 def send_alert(payload: dict):
     """Send alert to all configured channels."""
-    payload["timestamp"] = datetime.now(timezone.utc).isoformat()
+    payload["timestamp"] = datetime.now(UTC).isoformat()
     send_console_alert(payload)
     send_slack_alert(payload)
     send_webhook_alert(payload)

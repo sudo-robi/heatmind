@@ -19,15 +19,14 @@ import json
 import os
 import sys
 import time
-from typing import Any, Optional
 from dataclasses import dataclass
 
-from agents.router import route_query, QueryComplexity, QueryUrgency
-from agents.quick_agent import QuickAgent
 from agents.deep_agent import DeepAgent
 from agents.emergency_agent import EmergencyAgent
-from memory.session import SessionMemory
+from agents.quick_agent import QuickAgent
+from agents.router import route_query
 from config import FORTYGUARD_API_KEY
+from memory.session import SessionMemory
 
 
 @dataclass
@@ -364,7 +363,7 @@ def serve_mcp():
 
         except json.JSONDecodeError:
             continue
-        except Exception as e:
+        except Exception:
             error_response = {
                 "jsonrpc": "2.0",
                 "id": request_id if "request_id" in locals() else None,

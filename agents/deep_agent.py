@@ -12,7 +12,7 @@ class DeepAgent:
         latitude = params.get("latitude")
         longitude = params.get("longitude")
         date = params.get("date")
-        zone = params.get("zone", "unknown")
+        params.get("zone", "unknown")
         polygon_aoi = params.get("polygon_aoi")
         temperature = params.get("temperature", 35.0)
 

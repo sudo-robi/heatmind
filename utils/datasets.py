@@ -1,6 +1,4 @@
 import logging
-import requests
-from typing import Optional
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
@@ -47,10 +45,10 @@ class LocationContext:
     longitude: float
     city: str = "Unknown"
     state: str = "Unknown"
-    census_tract: Optional[str] = None
-    population_density: Optional[int] = None
-    median_income: Optional[int] = None
-    elderly_pct: Optional[float] = None
+    census_tract: str | None = None
+    population_density: int | None = None
+    median_income: int | None = None
+    elderly_pct: float | None = None
     heat_vulnerability: str = "unknown"
     risk_score: float = 0.0
     risk_factors: list = None
@@ -79,7 +77,7 @@ class LocationContext:
         }
 
 
-def _find_closest_tract(lat: float, lon: float) -> Optional[dict]:
+def _find_closest_tract(lat: float, lon: float) -> dict | None:
     min_dist = float("inf")
     closest = None
     for (tlat, tlon), data in US_CENSUS_TRACTS.items():

@@ -1,20 +1,21 @@
-import streamlit as st
 import json
+import os
+import sys
 import time
 import uuid
-from datetime import datetime, timezone
-from typing import Dict, Any, Optional, List
 from collections import Counter
+from datetime import UTC, datetime
 
-import sys, os
+import streamlit as st
+
 sys.path.insert(0, os.path.dirname(__file__))
 
-from config import FORTYGUARD_API_KEY, HEAT_THRESHOLD_C, HEAT_INDEX_THRESHOLD, MONITOR_INTERVAL_MINUTES
-from memory.session import SessionMemory
-from agents.router import route_query
-from agents.quick_agent import QuickAgent
 from agents.deep_agent import DeepAgent
 from agents.emergency_agent import EmergencyAgent
+from agents.quick_agent import QuickAgent
+from agents.router import route_query
+from config import FORTYGUARD_API_KEY, HEAT_INDEX_THRESHOLD, HEAT_THRESHOLD_C, MONITOR_INTERVAL_MINUTES
+from memory.session import SessionMemory
 
 SVG = {
     "fire": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
@@ -234,7 +235,7 @@ def generate_metrics_export():
     ac = dict(Counter([m.get("agent", "unknown") for m in am]))
     ec = len([m for m in st.session_state.messages if m.get("escalated")])
     return {
-        "export_timestamp": datetime.now(timezone.utc).isoformat(), "session_id": st.session_state.session_id,
+        "export_timestamp": datetime.now(UTC).isoformat(), "session_id": st.session_state.session_id,
         "summary": {"total_queries": st.session_state.query_count, "total_messages": len(st.session_state.messages), "escalated": ec, "agents": ac},
         "performance": {"avg_ms": sum(rt)/len(rt) if rt else 0, "min_ms": min(rt) if rt else 0, "max_ms": max(rt) if rt else 0, "escalation_pct": (ec/len(am)*100) if am else 0},
         "sentiment": {"avg": sum(ss)/len(ss) if ss else None, "positive": sum(1 for s in ss if s>0.1), "neutral": sum(1 for s in ss if -0.1<=s<=0.1), "negative": sum(1 for s in ss if s<-0.1)},
@@ -253,7 +254,7 @@ def init_session():
         st.session_state.total_response_time_ms = 0.0
         st.session_state.agent_counts = {"quick": 0, "deep": 0, "emergency": 0}
         st.session_state.escalation_count = 0
-        st.session_state.session_start = datetime.now(timezone.utc)
+        st.session_state.session_start = datetime.now(UTC)
 
 def handle_query(query):
     memory = st.session_state.memory
@@ -390,7 +391,7 @@ def main():
                 },
                 "queries": st.session_state.query_count,
                 "messages": safe_messages,
-                "exported_at": datetime.now(timezone.utc).isoformat(),
+                "exported_at": datetime.now(UTC).isoformat(),
             }
             st.download_button(label="Export Session JSON", data=json.dumps(export_data, indent=2), file_name=f"heatmind_{st.session_state.session_id[:8]}.json", mime="application/json", use_container_width=True, key="export_session")
         st.divider()
@@ -405,8 +406,7 @@ def main():
             ic = C["green"] if ok else C["red"]
             i = svg("check") if ok else svg("alert")
             st.markdown(f'<div style="display:flex;align-items:center;gap:6px;color:{ic};font-weight:600;">{i} {msg}</div>', unsafe_allow_html=True)
-            if not ok:
-                if st.button("Retry", key="retry_health"): st.rerun()
+            if not ok and st.button("Retry", key="retry_health"): st.rerun()
         with st.expander("Export Metrics JSON"):
             if st.button("Download Metrics JSON", key="dl_metrics", use_container_width=True):
                 m = generate_metrics_export()
@@ -461,7 +461,7 @@ def main():
             st.session_state.agent_counts[agent] = st.session_state.agent_counts.get(agent, 0) + 1
             st.session_state.total_response_time_ms += result.get("response_time_ms", 0)
             if agent == "emergency": st.session_state.alert_count += 1
-            assistant_msg = {"role": "assistant", "content": result["response"], "agent": agent, "response_time_ms": result.get("response_time_ms"), "complexity_score": result.get("complexity_score"), "sentiment_score": result.get("sentiment_score"), "escalated": result.get("escalated", False), "escalation_reason": result.get("escalation_reason", ""), "ticket_id": result.get("ticket_id", ""), "timestamp": datetime.now(timezone.utc).isoformat()}
+            assistant_msg = {"role": "assistant", "content": result["response"], "agent": agent, "response_time_ms": result.get("response_time_ms"), "complexity_score": result.get("complexity_score"), "sentiment_score": result.get("sentiment_score"), "escalated": result.get("escalated", False), "escalation_reason": result.get("escalation_reason", ""), "ticket_id": result.get("ticket_id", ""), "timestamp": datetime.now(UTC).isoformat()}
             st.session_state.messages.append(assistant_msg)
             if result.get("escalated"):
                 display_escalation_banner(result["escalation_reason"], result["ticket_id"])

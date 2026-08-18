@@ -1,7 +1,6 @@
 import re
-from datetime import datetime, timezone
 from dataclasses import dataclass, field
-from typing import Optional
+from datetime import UTC, datetime
 
 US_CITIES = {
     "new york": {"lat": 40.7128, "lon": -74.0060},
@@ -108,11 +107,11 @@ INTENT_PATTERNS = {
 @dataclass
 class ParsedQuery:
     intent: str = "current_conditions"
-    location: Optional[str] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-    date: Optional[str] = None
-    time: Optional[str] = None
+    location: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    date: str | None = None
+    time: str | None = None
     filter_type: int = 1
     endpoints_needed: list = field(default_factory=list)
     confidence: float = 0.5
@@ -120,7 +119,7 @@ class ParsedQuery:
     entities_found: list = field(default_factory=list)
 
 
-def extract_location(query: str) -> tuple[Optional[str], Optional[float], Optional[float]]:
+def extract_location(query: str) -> tuple[str | None, float | None, float | None]:
     query_lower = query.lower()
     for city, coords in sorted(US_CITIES.items(), key=lambda x: -len(x[0])):
         if city in query_lower:
@@ -135,9 +134,9 @@ def extract_location(query: str) -> tuple[Optional[str], Optional[float], Option
     return None, None, None
 
 
-def extract_date(query: str) -> Optional[str]:
+def extract_date(query: str) -> str | None:
     query_lower = query.lower()
-    today = datetime.now(timezone.utc)
+    today = datetime.now(UTC)
     if "today" in query_lower:
         return today.strftime("%Y-%m-%d")
     if "tomorrow" in query_lower:
@@ -158,7 +157,7 @@ def extract_date(query: str) -> Optional[str]:
     return today.strftime("%Y-%m-%d")
 
 
-def extract_time(query: str) -> Optional[str]:
+def extract_time(query: str) -> str | None:
     query_lower = query.lower()
     time_match = re.search(r'(\d{1,2}):(\d{2})\s*(am|pm)?', query_lower)
     if time_match:

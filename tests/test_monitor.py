@@ -1,29 +1,29 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
-from monitor.loop import MonitorLoop
+
 from config import HEAT_INDEX_THRESHOLD, HEAT_THRESHOLD_C
+from monitor.loop import MonitorLoop
 
 
 @pytest.fixture
 def loop():
-    with patch("monitor.loop.FortyGuardClient"):
-        with patch("monitor.loop.SessionMemory"):
-            with patch("monitor.loop.EmergencyAgent"):
-                return MonitorLoop()
+    with patch("monitor.loop.FortyGuardClient"), patch("monitor.loop.SessionMemory"):
+        with patch("monitor.loop.EmergencyAgent"):
+            return MonitorLoop()
 
 
 @pytest.fixture
 def mock_api_loop():
-    with patch("monitor.loop.FortyGuardClient") as mock_api:
-        with patch("monitor.loop.SessionMemory") as mock_mem:
-            with patch("monitor.loop.EmergencyAgent") as mock_emerg:
-                client = MagicMock()
-                mem = MagicMock()
-                agent = MagicMock()
-                mock_api.return_value = client
-                mock_mem.return_value = mem
-                mock_emerg.return_value = agent
-                yield client, mem, agent
+    with patch("monitor.loop.FortyGuardClient") as mock_api, patch("monitor.loop.SessionMemory") as mock_mem:
+        with patch("monitor.loop.EmergencyAgent") as mock_emerg:
+            client = MagicMock()
+            mem = MagicMock()
+            agent = MagicMock()
+            mock_api.return_value = client
+            mock_mem.return_value = mem
+            mock_emerg.return_value = agent
+            yield client, mem, agent
 
 
 class TestMonitorLoopInit:

@@ -1,7 +1,5 @@
-import pytest
 import uuid
-from unittest.mock import patch, MagicMock
-from datetime import datetime
+from unittest.mock import MagicMock, patch
 
 
 def make_session_id():
@@ -63,16 +61,15 @@ class TestEndToEndFlow:
             mem.decisions.drop()
 
     def test_monitor_analyze_threshold(self):
-        with patch("monitor.loop.FortyGuardClient"):
-            with patch("monitor.loop.SessionMemory"):
-                with patch("monitor.loop.EmergencyAgent"):
-                    from monitor.loop import MonitorLoop
-                    from config import HEAT_INDEX_THRESHOLD
-                    loop = MonitorLoop()
-                    reading = {"env_params": {"heat_index_celsius": HEAT_INDEX_THRESHOLD + 10}}
-                    assert loop.analyze_reading(reading) is True
-                    reading2 = {"env_params": {"heat_index_celsius": 10}}
-                    assert loop.analyze_reading(reading2) is False
+        with patch("monitor.loop.FortyGuardClient"), patch("monitor.loop.SessionMemory"):
+            with patch("monitor.loop.EmergencyAgent"):
+                from config import HEAT_INDEX_THRESHOLD
+                from monitor.loop import MonitorLoop
+                loop = MonitorLoop()
+                reading = {"env_params": {"heat_index_celsius": HEAT_INDEX_THRESHOLD + 10}}
+                assert loop.analyze_reading(reading) is True
+                reading2 = {"env_params": {"heat_index_celsius": 10}}
+                assert loop.analyze_reading(reading2) is False
 
     def test_emergency_agent_full_flow(self):
         with patch("agents.emergency_agent.FortyGuardClient") as mock_api:
@@ -94,25 +91,24 @@ class TestEndToEndFlow:
                     mock_alert.assert_called_once()
 
     def test_deep_agent_full_flow(self):
-        with patch("agents.deep_agent.FortyGuardClient") as mock_api:
-            with patch("agents.deep_agent.SessionMemory"):
-                client = MagicMock()
-                mock_api.return_value = client
-                client.create_env_params.return_value = "env-123"
-                client.create_heat_intelligence.return_value = "intel-123"
-                client.wait_for_result.side_effect = [
-                    {"heat_index_celsius": 42.5, "relative_humidity_percent": 65},
-                    {"report": "Heat intelligence generated successfully"},
-                ]
-                from agents.deep_agent import DeepAgent
-                agent = DeepAgent()
-                result = agent.handle(
-                    "full assessment needed",
-                    make_session_id(),
-                    {"latitude": 25.0, "longitude": 55.0, "date": "2026-08-18"}
-                )
-                assert result["agent"] == "deep"
-                assert "42.5" in result["response"]
+        with patch("agents.deep_agent.FortyGuardClient") as mock_api, patch("agents.deep_agent.SessionMemory"):
+            client = MagicMock()
+            mock_api.return_value = client
+            client.create_env_params.return_value = "env-123"
+            client.create_heat_intelligence.return_value = "intel-123"
+            client.wait_for_result.side_effect = [
+                {"heat_index_celsius": 42.5, "relative_humidity_percent": 65},
+                {"report": "Heat intelligence generated successfully"},
+            ]
+            from agents.deep_agent import DeepAgent
+            agent = DeepAgent()
+            result = agent.handle(
+                "full assessment needed",
+                make_session_id(),
+                {"latitude": 25.0, "longitude": 55.0, "date": "2026-08-18"}
+            )
+            assert result["agent"] == "deep"
+            assert "42.5" in result["response"]
 
     def test_emergency_recommends_evacuation_on_extreme(self):
         with patch("agents.emergency_agent.FortyGuardClient") as mock_api:
@@ -132,10 +128,9 @@ class TestEndToEndFlow:
                     assert result["severity"] == "extreme"
 
     def test_quick_agent_missing_params_returns_error(self):
-        with patch("agents.quick_agent.FortyGuardClient"):
-            with patch("agents.quick_agent.SessionMemory"):
-                from agents.quick_agent import QuickAgent
-                agent = QuickAgent()
-                result = agent.handle("test", make_session_id(), {})
-                assert "error" in result
-                assert "Missing" in result["error"]
+        with patch("agents.quick_agent.FortyGuardClient"), patch("agents.quick_agent.SessionMemory"):
+            from agents.quick_agent import QuickAgent
+            agent = QuickAgent()
+            result = agent.handle("test", make_session_id(), {})
+            assert "error" in result
+            assert "Missing" in result["error"]

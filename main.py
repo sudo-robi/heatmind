@@ -1,18 +1,16 @@
 import logging
-import json
+
 from rich.console import Console
-from rich.prompt import Prompt
 from rich.panel import Panel
+from rich.prompt import Prompt
 from rich.table import Table
-from memory.session import SessionMemory
-from agents.nlp_parser import parse_query
+
 from agents.chain_agent import ChainAgent
-from agents.quick_agent import QuickAgent
-from agents.deep_agent import DeepAgent
-from agents.emergency_agent import EmergencyAgent
-from monitor.loop import MonitorLoop
-from utils.datasets import get_location_context, format_location_context
+from agents.nlp_parser import parse_query
 from config import FORTYGUARD_API_KEY
+from memory.session import SessionMemory
+from monitor.loop import MonitorLoop
+from utils.datasets import format_location_context, get_location_context
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger(__name__)

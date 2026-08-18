@@ -1,16 +1,17 @@
 import logging
-import schedule
-import time
 import threading
-from datetime import datetime, timezone
-from api.fortyguard import FortyGuardClient
-from memory.session import SessionMemory
+from datetime import UTC, datetime
+
+import schedule
+
 from agents.emergency_agent import EmergencyAgent
+from api.fortyguard import FortyGuardClient
 from config import (
-    MONITOR_INTERVAL_MINUTES,
-    HEAT_THRESHOLD_C,
     HEAT_INDEX_THRESHOLD,
+    HEAT_THRESHOLD_C,
+    MONITOR_INTERVAL_MINUTES,
 )
+from memory.session import SessionMemory
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ class MonitorLoop:
         return raw
 
     def check_zone(self, zone: dict) -> dict:
-        date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        date = datetime.now(UTC).strftime("%Y-%m-%d")
 
         heatmap_id = self.api.create_heatmap(
             polygon_aoi=zone["polygon_aoi"],
@@ -70,7 +71,7 @@ class MonitorLoop:
 
         reading = {
             "zone": zone["name"],
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "heatmap": heatmap_result,
             "env_params": env_result,
         }
@@ -91,13 +92,10 @@ class MonitorLoop:
         temp_stats = stats.get("Temperature_stats", {})
         max_temp = temp_stats.get("Maximum", 0)
 
-        if max_temp >= HEAT_THRESHOLD_C:
-            return True
-
-        return False
+        return max_temp >= HEAT_THRESHOLD_C
 
     def trigger_emergency(self, zone: dict, reading: dict):
-        date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        date = datetime.now(UTC).strftime("%Y-%m-%d")
         self.emergency_agent.handle(
             query=f"Emergency detected in {zone['name']}",
             session_id=self._system_session_id,

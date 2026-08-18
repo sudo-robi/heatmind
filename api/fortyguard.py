@@ -1,7 +1,8 @@
 import logging
-import requests
 import time
-from typing import Optional, Any
+
+import requests
+
 from config import FORTYGUARD_API_KEY, FORTYGUARD_BASE_URL
 
 logger = logging.getLogger(__name__)
@@ -44,12 +45,12 @@ class FortyGuardClient:
         self,
         polygon_aoi: dict,
         start_date: str,
-        start_time: Optional[str] = None,
-        end_time: Optional[str] = None,
-        end_date: Optional[str] = None,
+        start_time: str | None = None,
+        end_time: str | None = None,
+        end_date: str | None = None,
         filter_type: int = 1,
         granularity: int = 100,
-    ) -> Optional[str]:
+    ) -> str | None:
         try:
             date_time = {"start_date": start_date, "filter_type": filter_type}
             if start_time:
@@ -75,10 +76,10 @@ class FortyGuardClient:
         latitude: float,
         longitude: float,
         start_date: str,
-        start_time: Optional[str] = None,
+        start_time: str | None = None,
         filter_type: int = 1,
         granularity: int = 80,
-    ) -> Optional[str]:
+    ) -> str | None:
         try:
             date_time = {"start_date": start_date, "filter_type": filter_type}
             if start_time:
@@ -102,7 +103,7 @@ class FortyGuardClient:
         vertical_angle: float = 10.0,
         horizontal_angle: float = 90.0,
         back_view: bool = False,
-    ) -> Optional[str]:
+    ) -> str | None:
         try:
             payload = {
                 "latitude": latitude,
@@ -124,7 +125,7 @@ class FortyGuardClient:
         temperature: float,
         date: str,
         analysis: list[str],
-    ) -> Optional[str]:
+    ) -> str | None:
         try:
             payload = {
                 "latitude": latitude,
@@ -145,9 +146,9 @@ class FortyGuardClient:
         longitude: float,
         temperature: float,
         start_date: str,
-        start_time: Optional[str] = None,
+        start_time: str | None = None,
         filter_type: int = 1,
-    ) -> Optional[str]:
+    ) -> str | None:
         try:
             date_time = {"start_date": start_date, "filter_type": filter_type}
             if start_time:
@@ -181,7 +182,7 @@ class FortyGuardClient:
 
     def wait_for_result(
         self, activity_id: str, timeout: int = 300, poll_interval: int = 5
-    ) -> Optional[dict]:
+    ) -> dict | None:
         start = time.time()
         while time.time() - start < timeout:
             try:

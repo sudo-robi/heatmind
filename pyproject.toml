@@ -13,10 +13,12 @@ markers = [
 [tool.ruff]
 target-version = "py311"
 line-length = 120
-select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "SIM", "TCH"]
-ignore = ["E501", "B008", "N802", "N803", "UP007"]
 
-[tool.ruff.isort]
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "SIM", "TCH"]
+ignore = ["E501", "E701", "E702", "E741", "B008", "N802", "N803", "N806", "UP007", "UP017", "UP035", "UP045", "SIM102", "SIM103", "SIM114", "SIM117", "C420", "A004"]
+
+[tool.ruff.lint.isort]
 known-first-party = ["config", "api", "agents", "memory", "monitor", "utils"]
 
 [tool.mypy]

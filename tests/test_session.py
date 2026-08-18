@@ -1,6 +1,7 @@
-import pytest
 import uuid
-from datetime import datetime
+
+import pytest
+
 from memory.session import SessionMemory
 
 
@@ -190,7 +191,8 @@ class TestDecisionLogging:
     def test_decisions_sorted_by_time(self, memory):
         sid = memory.create_session("test_user")
         memory.log_decision(sid, "first", "quick", "reason")
-        import time; time.sleep(0.01)
+        import time
+        time.sleep(0.01)
         memory.log_decision(sid, "second", "deep", "reason")
         decisions = memory.get_recent_decisions(sid)
         assert decisions[0]["query"] == "second"
