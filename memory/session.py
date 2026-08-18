@@ -91,31 +91,31 @@ class SessionMemory:
         return {}
 
     def add_message(self, session_id: str, role: str, content: str):
-        """Add a message to session history (like session-history-plugin)."""
+        """Add a message to session history (like session-history-plugin).
+
+        Uses atomic $push + $slice to avoid read-then-write race conditions.
+        """
+        depth = 50
         session = self.get_session(session_id)
-        if not session:
-            return
-
-        messages = session.get("messages", [])
-        messages.append(
-            {
-                "role": role,
-                "content": content,
-                "timestamp": datetime.now(UTC).isoformat(),
-            }
-        )
-
-        depth = session.get("session_history_depth", 50)
-        if len(messages) > depth:
-            messages = messages[-depth:]
+        if session:
+            depth = session.get("session_history_depth", 50)
 
         self.sessions.update_one(
             {"session_id": session_id},
             {
-                "$set": {
-                    "messages": messages,
-                    "last_active": datetime.now(UTC),
+                "$push": {
+                    "messages": {
+                        "$each": [
+                            {
+                                "role": role,
+                                "content": content,
+                                "timestamp": datetime.now(UTC).isoformat(),
+                            }
+                        ],
+                        "$slice": -depth,
+                    }
                 },
+                "$set": {"last_active": datetime.now(UTC)},
                 "$inc": {"query_count": 1},
             },
         )

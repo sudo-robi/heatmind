@@ -4,8 +4,11 @@ services:
   mongodb:
     image: mongo:7
     container_name: heatmind-mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: heatmind
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-changeme}
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
     volumes:
       - mongodb_data:/data/db
     restart: unless-stopped
@@ -18,7 +21,7 @@ services:
     depends_on:
       - mongodb
     environment:
-      - MONGO_URI=mongodb://mongodb:27017
+      - MONGO_URI=mongodb://heatmind:${MONGO_PASSWORD:-changeme}@mongodb:27017/heatmind?authSource=admin
       - MONGO_DB=heatmind
       - FORTYGUARD_API_KEY=${FORTYGUARD_API_KEY}
       - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}

@@ -4,10 +4,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-FORTYGUARD_API_KEY = os.getenv("FORTYGUARD_API_KEY", "")
 FORTYGUARD_BASE_URL = "https://api.fortyguard.com/v1"
 
-MONGO_URI = os.getenv("MONGO_URI", "")
 MONGO_DB = os.getenv("MONGO_DB", "heatmind")
 
 
@@ -22,6 +20,10 @@ def _validate_mongo_uri():
 def _validate_api_key():
     if not os.environ.get("FORTYGUARD_API_KEY"):
         raise ValueError("FORTYGUARD_API_KEY is required. Set it in your .env file or environment.")
+
+
+FORTYGUARD_API_KEY = os.getenv("FORTYGUARD_API_KEY", "")
+MONGO_URI = os.getenv("MONGO_URI", "")
 
 
 ALERT_WEBHOOK_URL = os.getenv("ALERT_WEBHOOK_URL", "")

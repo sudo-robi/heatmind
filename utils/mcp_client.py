@@ -14,6 +14,7 @@ Usage:
     result = client.query("What's the heat index in Dubai?")
 """
 
+import hmac
 import json
 import logging
 import os
@@ -316,7 +317,7 @@ def serve_mcp():
 
             if mcp_secret:
                 token = request.get("params", {}).get("token") or request.get("token", "")
-                if token != mcp_secret:
+                if not hmac.compare_digest(token, mcp_secret):
                     logger.warning("MCP auth failed: invalid token")
                     response = {
                         "jsonrpc": "2.0",

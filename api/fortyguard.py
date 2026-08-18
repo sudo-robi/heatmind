@@ -197,7 +197,7 @@ class FortyGuardClient:
             return self._get("system/fetch-api-key-usage")
         except Exception as e:
             logger.error("get_credits failed: %s", type(e).__name__)
-            return {"error": str(e)}
+            return {"error": type(e).__name__}
 
     def wait_for_result(self, activity_id: str, timeout: int = 300, poll_interval: int = 5) -> dict | None:
         start = time.time()

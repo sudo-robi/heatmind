@@ -122,7 +122,10 @@ class ParsedQuery:
 def extract_location(query: str) -> tuple[str | None, float | None, float | None]:
     query_lower = query.lower()
     for city, coords in sorted(US_CITIES.items(), key=lambda x: -len(x[0])):
-        if city in query_lower:
+        if len(city) <= 3:
+            if re.search(rf"\b{re.escape(city)}\b", query_lower):
+                return city, coords["lat"], coords["lon"]
+        elif city in query_lower:
             return city, coords["lat"], coords["lon"]
     lat_match = re.search(r"latitude[:\s]+(-?\d+\.?\d*)", query_lower)
     lon_match = re.search(r"longitude[:\s]+(-?\d+\.?\d*)", query_lower)
@@ -171,6 +174,15 @@ def extract_time(query: str) -> str | None:
         elif ampm == "am" and hour == 12:
             hour = 0
         return f"{hour:02d}:{minute}"
+    time_match = re.search(r"(\d{1,2})\s*(am|pm)", query_lower)
+    if time_match:
+        hour = int(time_match.group(1))
+        ampm = time_match.group(2)
+        if ampm == "pm" and hour < 12:
+            hour += 12
+        elif ampm == "am" and hour == 12:
+            hour = 0
+        return f"{hour:02d}:00"
     if "morning" in query_lower:
         return "08:00"
     if "afternoon" in query_lower:
