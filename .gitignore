@@ -1,0 +1,42 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.coverage.*
+coverage.xml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Streamlit
+.streamlit/secrets.toml
+
+# MongoDB
+data/db/
+.~lock.README.md#

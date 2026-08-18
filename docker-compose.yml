@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: heatmind-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+
+  heatmind:
+    build: .
+    container_name: heatmind-app
+    ports:
+      - "8501:8501"
+    depends_on:
+      - mongodb
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017
+      - MONGO_DB=heatmind
+      - FORTYGUARD_API_KEY=${FORTYGUARD_API_KEY}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+      - ALERT_WEBHOOK_URL=${ALERT_WEBHOOK_URL:-}
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - ALERT_EMAIL_TO=${ALERT_EMAIL_TO:-}
+      - MCP_SECRET=${MCP_SECRET:-}
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:

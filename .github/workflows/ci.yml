@@ -1,0 +1,184 @@
+name: HeatMind CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.11"
+  MONGO_URI: mongodb://localhost:27017
+
+jobs:
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install linting tools
+        run: pip install ruff mypy
+      - name: Ruff check
+        run: ruff check . --output-format=github
+      - name: Ruff format check
+        run: ruff format --check .
+      - name: MyPy type check
+        run: mypy --ignore-missing-imports agents/ memory/ monitor/ utils/ api/ config.py
+
+  test-unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-test.txt
+      - name: Run unit tests
+        run: |
+          pytest tests/test_config.py tests/test_router.py -v --tb=short
+      - name: Run agent tests
+        run: |
+          pytest tests/test_agents.py -v --tb=short
+      - name: Run alert tests
+        run: |
+          pytest tests/test_alerts.py -v --tb=short
+      - name: Run API tests
+        run: |
+          pytest tests/test_api.py -v --tb=short
+
+  test-memory:
+    name: Memory Tests (MongoDB)
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-test.txt
+      - name: Wait for MongoDB
+        run: |
+          for i in $(seq 1 30); do
+            if mongosh --eval "db.adminCommand('ping')" --quiet 2>/dev/null; then
+              echo "MongoDB is ready"
+              break
+            fi
+            echo "Waiting for MongoDB... ($i)"
+            sleep 2
+          done
+      - name: Run memory tests
+        run: |
+          pytest tests/test_session.py -v --tb=short
+      - name: Run monitor tests
+        run: |
+          pytest tests/test_monitor.py -v --tb=short
+
+  test-integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-test.txt
+      - name: Wait for MongoDB
+        run: |
+          for i in $(seq 1 30); do
+            if mongosh --eval "db.adminCommand('ping')" --quiet 2>/dev/null; then
+              echo "MongoDB is ready"
+              break
+            fi
+            echo "Waiting for MongoDB... ($i)"
+            sleep 2
+          done
+      - name: Run integration tests
+        run: |
+          pytest tests/test_integration.py -v --tb=long
+      - name: Run all tests with coverage
+        run: |
+          pytest tests/ -v --cov=. --cov-report=xml --cov-report=term-missing --tb=short
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.xml
+          flags: unittests
+          fail_ci_if_error: false
+
+  test-edge-cases:
+    name: Edge Case Tests
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-test.txt
+      - name: Wait for MongoDB
+        run: |
+          for i in $(seq 1 30); do
+            if mongosh --eval "db.adminCommand('ping')" --quiet 2>/dev/null; then
+              echo "MongoDB is ready"
+              break
+            fi
+            echo "Waiting for MongoDB... ($i)"
+            sleep 2
+          done
+      - name: Run all edge case tests
+        run: |
+          pytest tests/ -v -k "edge or Edge or EdgeCases or extreme or negative or empty or long or unicode or missing or nonexistent" --tb=long
+
+  build-verify:
+    name: Build Verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Verify imports
+        run: |
+          python -c "from config import *"
+          python -c "from api.fortyguard import FortyGuardClient"
+          python -c "from agents.router import route_query"
+          python -c "from agents.quick_agent import QuickAgent"
+          python -c "from agents.deep_agent import DeepAgent"
+          python -c "from agents.emergency_agent import EmergencyAgent"
+          python -c "from memory.session import SessionMemory"
+          python -c "from monitor.loop import MonitorLoop"
+          python -c "from utils.alerts import send_alert"
+      - name: Verify Streamlit app loads
+        run: |
+          timeout 5 python -c "import streamlit; print('Streamlit OK')" || true
