@@ -40,3 +40,4 @@ Thumbs.db
 # MongoDB
 data/db/
 .~lock.README.md#
+.vercel
