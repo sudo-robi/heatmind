@@ -180,9 +180,7 @@ class FortyGuardClient:
             logger.error("get_credits failed: %s", type(e).__name__)
             return {"error": str(e)}
 
-    def wait_for_result(
-        self, activity_id: str, timeout: int = 300, poll_interval: int = 5
-    ) -> dict | None:
+    def wait_for_result(self, activity_id: str, timeout: int = 300, poll_interval: int = 5) -> dict | None:
         start = time.time()
         while time.time() - start < timeout:
             try:

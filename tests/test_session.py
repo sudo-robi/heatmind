@@ -192,6 +192,7 @@ class TestDecisionLogging:
         sid = memory.create_session("test_user")
         memory.log_decision(sid, "first", "quick", "reason")
         import time
+
         time.sleep(0.01)
         memory.log_decision(sid, "second", "deep", "reason")
         decisions = memory.get_recent_decisions(sid)

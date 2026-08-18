@@ -9,6 +9,7 @@ on:
 env:
   PYTHON_VERSION: "3.11"
   MONGO_URI: mongodb://localhost:27017
+  PYTHONPATH: ${{ github.workspace }}
 
 jobs:
   lint:

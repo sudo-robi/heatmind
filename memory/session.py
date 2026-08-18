@@ -97,11 +97,13 @@ class SessionMemory:
             return
 
         messages = session.get("messages", [])
-        messages.append({
-            "role": role,
-            "content": content,
-            "timestamp": datetime.now(UTC).isoformat(),
-        })
+        messages.append(
+            {
+                "role": role,
+                "content": content,
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+        )
 
         depth = session.get("session_history_depth", 50)
         if len(messages) > depth:
@@ -188,18 +190,10 @@ class SessionMemory:
 
     def get_recent_decisions(self, session_id: str, limit: int = 10) -> list:
         """Get recent decisions for a session."""
-        return list(
-            self.decisions.find({"session_id": session_id})
-            .sort("timestamp", -1)
-            .limit(limit)
-        )
+        return list(self.decisions.find({"session_id": session_id}).sort("timestamp", -1).limit(limit))
 
     def get_zone_history(self, zone_name: str, limit: int = 20) -> list:
         """Get heat reading history for a zone."""
         return list(
-            self.events.find(
-                {"data.zone": zone_name, "event_type": "heat_reading"}
-            )
-            .sort("timestamp", -1)
-            .limit(limit)
+            self.events.find({"data.zone": zone_name, "event_type": "heat_reading"}).sort("timestamp", -1).limit(limit)
         )

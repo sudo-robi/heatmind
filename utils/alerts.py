@@ -105,6 +105,7 @@ def send_email_alert(payload: dict):
         return
 
     from html import escape as html_escape
+
     severity = html_escape(payload.get("severity", "unknown").upper())
     zone = html_escape(payload.get("zone", "unknown"))
     heat_index = html_escape(str(payload.get("heat_index", "N/A")))
@@ -178,7 +179,7 @@ def send_console_alert(payload: dict):
     timestamp = payload.get("timestamp", datetime.now(UTC).isoformat())
     recommendations = payload.get("recommendations", [])
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"HEAT ALERT — {severity}")
     print(f"Zone: {zone}")
     print(f"Heat Index: {heat_index}°C")
@@ -186,7 +187,7 @@ def send_console_alert(payload: dict):
     print("\nRecommendations:")
     for i, rec in enumerate(recommendations, 1):
         print(f"  {i}. {rec}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
 
 def send_alert(payload: dict):

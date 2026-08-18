@@ -9,6 +9,7 @@ class TestConfigLoading:
         import importlib
 
         import config
+
         importlib.reload(config)
         assert config.FORTYGUARD_BASE_URL == "https://api.fortyguard.com/v1"
         assert config.MONGO_DB == "heatmind_test"
@@ -22,6 +23,7 @@ class TestConfigLoading:
         import importlib
 
         import config
+
         importlib.reload(config)
         assert config.HEAT_THRESHOLD_C == 35.0
         assert config.HEAT_INDEX_THRESHOLD == 40
@@ -30,6 +32,7 @@ class TestConfigLoading:
         import importlib
 
         import config
+
         importlib.reload(config)
         assert isinstance(config.FORTYGUARD_API_KEY, str)
 
@@ -37,6 +40,7 @@ class TestConfigLoading:
         import importlib
 
         import config
+
         importlib.reload(config)
         assert config.MONGO_URI.startswith("mongodb://") or config.MONGO_URI.startswith("mongodb+srv://")
 
@@ -44,6 +48,7 @@ class TestConfigLoading:
         import importlib
 
         import config
+
         importlib.reload(config)
         assert isinstance(config.SMTP_PORT, int)
         assert 1 <= config.SMTP_PORT <= 65535
@@ -56,6 +61,7 @@ class TestConfigEdgeCases:
             import importlib
 
             import config
+
             importlib.reload(config)
 
     def test_negative_threshold(self, monkeypatch):
@@ -63,6 +69,7 @@ class TestConfigEdgeCases:
         import importlib
 
         import config
+
         importlib.reload(config)
         assert config.HEAT_THRESHOLD_C == -10.0
 
@@ -71,6 +78,7 @@ class TestConfigEdgeCases:
         import importlib
 
         import config
+
         importlib.reload(config)
         assert config.MONITOR_INTERVAL_MINUTES == 0
 
@@ -79,14 +87,18 @@ class TestConfigEdgeCases:
         import importlib
 
         import config
+
         importlib.reload(config)
         assert config.HEAT_THRESHOLD_C == 1000.0
 
     def test_atlas_uri_format(self, monkeypatch):
-        monkeypatch.setenv("MONGO_URI", "mongodb+srv://user:pass@cluster0.mongodb.net/heatmind?retryWrites=true&w=majority")
+        monkeypatch.setenv(
+            "MONGO_URI", "mongodb+srv://user:pass@cluster0.mongodb.net/heatmind?retryWrites=true&w=majority"
+        )
         import importlib
 
         import config
+
         importlib.reload(config)
         assert "mongodb+srv://" in config.MONGO_URI
         assert "cluster0" in config.MONGO_URI

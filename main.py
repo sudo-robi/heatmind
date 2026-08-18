@@ -27,13 +27,15 @@ def build_polygon_aoi(lat: float, lon: float, size: float = 0.01) -> dict:
                 "properties": {},
                 "geometry": {
                     "type": "Polygon",
-                    "coordinates": [[
-                        [lon - size, lat - size],
-                        [lon + size, lat - size],
-                        [lon + size, lat + size],
-                        [lon - size, lat + size],
-                        [lon - size, lat - size],
-                    ]],
+                    "coordinates": [
+                        [
+                            [lon - size, lat - size],
+                            [lon + size, lat - size],
+                            [lon + size, lat + size],
+                            [lon - size, lat + size],
+                            [lon - size, lat - size],
+                        ]
+                    ],
                 },
             }
         ],

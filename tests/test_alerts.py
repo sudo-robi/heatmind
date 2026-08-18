@@ -121,6 +121,7 @@ class TestWebhookAlert:
         with patch("utils.alerts.ALERT_WEBHOOK_URL", "https://hook.test"):
             with patch("utils.alerts.requests.post") as mock_post:
                 from requests.exceptions import ConnectionError
+
                 mock_post.side_effect = ConnectionError("Connection refused")
                 send_webhook_alert(alert_payload)
                 mock_post.assert_called_once()
@@ -130,6 +131,7 @@ class TestWebhookAlert:
         with patch("utils.alerts.ALERT_WEBHOOK_URL", "https://hook.test"):
             with patch("utils.alerts.requests.post") as mock_post:
                 from requests.exceptions import Timeout
+
                 mock_post.side_effect = Timeout("Request timed out")
                 send_webhook_alert(alert_payload)
 

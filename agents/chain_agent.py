@@ -180,8 +180,12 @@ class ChainAgent:
         if "env_params" in results:
             env = results["env_params"]
             lines.append("**Environmental Conditions:**")
-            for key in ["heat_index_celsius", "apparent_temperature_celsius",
-                        "relative_humidity_percent", "air_quality:idx"]:
+            for key in [
+                "heat_index_celsius",
+                "apparent_temperature_celsius",
+                "relative_humidity_percent",
+                "air_quality:idx",
+            ]:
                 if key in env and env[key] is not None:
                     label = key.replace("_", " ").replace(":", " ").title()
                     lines.append(f"  - {label}: {env[key]}")

@@ -124,11 +124,11 @@ def extract_location(query: str) -> tuple[str | None, float | None, float | None
     for city, coords in sorted(US_CITIES.items(), key=lambda x: -len(x[0])):
         if city in query_lower:
             return city, coords["lat"], coords["lon"]
-    lat_match = re.search(r'latitude[:\s]+(-?\d+\.?\d*)', query_lower)
-    lon_match = re.search(r'longitude[:\s]+(-?\d+\.?\d*)', query_lower)
+    lat_match = re.search(r"latitude[:\s]+(-?\d+\.?\d*)", query_lower)
+    lon_match = re.search(r"longitude[:\s]+(-?\d+\.?\d*)", query_lower)
     if lat_match and lon_match:
         return "custom", float(lat_match.group(1)), float(lon_match.group(1))
-    coord_match = re.search(r'\((-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\)', query)
+    coord_match = re.search(r"\((-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\)", query)
     if coord_match:
         return "custom", float(coord_match.group(1)), float(coord_match.group(2))
     return None, None, None
@@ -141,14 +141,16 @@ def extract_date(query: str) -> str | None:
         return today.strftime("%Y-%m-%d")
     if "tomorrow" in query_lower:
         from datetime import timedelta
+
         return (today + timedelta(days=1)).strftime("%Y-%m-%d")
     if "yesterday" in query_lower:
         from datetime import timedelta
+
         return (today - timedelta(days=1)).strftime("%Y-%m-%d")
-    date_match = re.search(r'(\d{4}-\d{2}-\d{2})', query)
+    date_match = re.search(r"(\d{4}-\d{2}-\d{2})", query)
     if date_match:
         return date_match.group(1)
-    date_match = re.search(r'(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})', query)
+    date_match = re.search(r"(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})", query)
     if date_match:
         month, day, year = date_match.groups()
         if len(year) == 2:
@@ -159,7 +161,7 @@ def extract_date(query: str) -> str | None:
 
 def extract_time(query: str) -> str | None:
     query_lower = query.lower()
-    time_match = re.search(r'(\d{1,2}):(\d{2})\s*(am|pm)?', query_lower)
+    time_match = re.search(r"(\d{1,2}):(\d{2})\s*(am|pm)?", query_lower)
     if time_match:
         hour = int(time_match.group(1))
         minute = time_match.group(2)

@@ -19,17 +19,19 @@ class TestEndToEndFlow:
                     "air_quality:idx": 120,
                 }
                 from agents.quick_agent import QuickAgent
+
                 agent = QuickAgent()
                 result = agent.handle(
                     "what is the temperature",
                     make_session_id(),
-                    {"latitude": 25.0, "longitude": 55.0, "date": "2026-08-18"}
+                    {"latitude": 25.0, "longitude": 55.0, "date": "2026-08-18"},
                 )
                 assert result["agent"] == "quick"
                 assert "42.5" in result["response"]
 
     def test_full_router_to_agent_flow(self):
         from agents.router import route_query
+
         query = "what is the temperature in Dubai"
         routing = route_query(query)
         assert routing.agent == "quick"
@@ -44,6 +46,7 @@ class TestEndToEndFlow:
 
     def test_memory_persists_across_queries(self):
         from memory.session import SessionMemory
+
         mem = SessionMemory()
         sid = mem.create_session("integration_user")
         try:
@@ -65,6 +68,7 @@ class TestEndToEndFlow:
             with patch("monitor.loop.EmergencyAgent"):
                 from config import HEAT_INDEX_THRESHOLD
                 from monitor.loop import MonitorLoop
+
                 loop = MonitorLoop()
                 reading = {"env_params": {"heat_index_celsius": HEAT_INDEX_THRESHOLD + 10}}
                 assert loop.analyze_reading(reading) is True
@@ -80,11 +84,12 @@ class TestEndToEndFlow:
                     client.create_env_params.return_value = "env-123"
                     client.wait_for_result.return_value = {"heat_index_celsius": 55}
                     from agents.emergency_agent import EmergencyAgent
+
                     agent = EmergencyAgent()
                     result = agent.handle(
                         "EMERGENCY heat alert",
                         make_session_id(),
-                        {"latitude": 25.0, "longitude": 55.0, "date": "2026-08-18"}
+                        {"latitude": 25.0, "longitude": 55.0, "date": "2026-08-18"},
                     )
                     assert result["agent"] == "emergency"
                     assert result["severity"] == "extreme"
@@ -101,11 +106,10 @@ class TestEndToEndFlow:
                 {"report": "Heat intelligence generated successfully"},
             ]
             from agents.deep_agent import DeepAgent
+
             agent = DeepAgent()
             result = agent.handle(
-                "full assessment needed",
-                make_session_id(),
-                {"latitude": 25.0, "longitude": 55.0, "date": "2026-08-18"}
+                "full assessment needed", make_session_id(), {"latitude": 25.0, "longitude": 55.0, "date": "2026-08-18"}
             )
             assert result["agent"] == "deep"
             assert "42.5" in result["response"]
@@ -119,10 +123,10 @@ class TestEndToEndFlow:
                     client.create_env_params.return_value = "env-123"
                     client.wait_for_result.return_value = {"heat_index_celsius": 60}
                     from agents.emergency_agent import EmergencyAgent
+
                     agent = EmergencyAgent()
                     result = agent.handle(
-                        "EMERGENCY", make_session_id(),
-                        {"latitude": 25.0, "longitude": 55.0, "date": "2026-08-18"}
+                        "EMERGENCY", make_session_id(), {"latitude": 25.0, "longitude": 55.0, "date": "2026-08-18"}
                     )
                     assert "Evacuate" in result["response"]
                     assert result["severity"] == "extreme"
@@ -130,6 +134,7 @@ class TestEndToEndFlow:
     def test_quick_agent_missing_params_returns_error(self):
         with patch("agents.quick_agent.FortyGuardClient"), patch("agents.quick_agent.SessionMemory"):
             from agents.quick_agent import QuickAgent
+
             agent = QuickAgent()
             result = agent.handle("test", make_session_id(), {})
             assert "error" in result

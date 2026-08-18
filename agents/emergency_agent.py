@@ -110,24 +110,30 @@ class EmergencyAgent:
     def _generate_recommendations(self, severity: str, env_data: dict) -> list:
         recommendations = []
         if severity in ("extreme", "dangerous"):
-            recommendations.extend([
-                "Evacuate outdoor workers immediately",
-                "Open all available cooling centers",
-                "Issue public heat emergency warning",
-                "Activate emergency water distribution",
-            ])
+            recommendations.extend(
+                [
+                    "Evacuate outdoor workers immediately",
+                    "Open all available cooling centers",
+                    "Issue public heat emergency warning",
+                    "Activate emergency water distribution",
+                ]
+            )
         elif severity == "emergency":
-            recommendations.extend([
-                "Relocate outdoor workers to shaded areas",
-                "Increase water supply at work sites",
-                "Issue heat advisory to public",
-            ])
+            recommendations.extend(
+                [
+                    "Relocate outdoor workers to shaded areas",
+                    "Increase water supply at work sites",
+                    "Issue heat advisory to public",
+                ]
+            )
         elif severity == "warning":
-            recommendations.extend([
-                "Ensure water availability for outdoor workers",
-                "Schedule rest breaks in shaded areas",
-                "Monitor conditions closely",
-            ])
+            recommendations.extend(
+                [
+                    "Ensure water availability for outdoor workers",
+                    "Schedule rest breaks in shaded areas",
+                    "Monitor conditions closely",
+                ]
+            )
         return recommendations
 
     def _format_response(self, severity: str, heat_index: float, recommendations: list) -> str:

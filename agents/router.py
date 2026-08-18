@@ -28,33 +28,68 @@ class RoutingDecision:
 
 COMPLEXITY_KEYWORDS = {
     QueryComplexity.SIMPLE: [
-        "what is", "what's", "current", "right now", "today",
-        "temperature", "heat index", "humidity",
+        "what is",
+        "what's",
+        "current",
+        "right now",
+        "today",
+        "temperature",
+        "heat index",
+        "humidity",
     ],
     QueryComplexity.MODERATE: [
-        "compare", "trend", "history", "this week", "forecast",
-        "analysis", "report",
+        "compare",
+        "trend",
+        "history",
+        "this week",
+        "forecast",
+        "analysis",
+        "report",
     ],
     QueryComplexity.COMPLEX: [
-        "full assessment", "comprehensive", "deep dive", "intelligence",
-        "risk assessment", "multi-day", "satellite", "streetview",
+        "full assessment",
+        "comprehensive",
+        "deep dive",
+        "intelligence",
+        "risk assessment",
+        "multi-day",
+        "satellite",
+        "streetview",
     ],
 }
 
 URGENCY_KEYWORDS = {
     QueryUrgency.CRITICAL: [
-        "emergency", "dangerous", "extreme", "immediate", "now",
-        "crisis", "evacuation",
+        "emergency",
+        "dangerous",
+        "extreme",
+        "immediate",
+        "now",
+        "crisis",
+        "evacuation",
     ],
     QueryUrgency.HIGH: [
-        "alert", "warning", "high risk", "exceed", "threshold",
-        "unsafe", "hazardous",
+        "alert",
+        "warning",
+        "high risk",
+        "exceed",
+        "threshold",
+        "unsafe",
+        "hazardous",
     ],
     QueryUrgency.MEDIUM: [
-        "should i", "concerned", "worried", "check", "monitor",
+        "should i",
+        "concerned",
+        "worried",
+        "check",
+        "monitor",
     ],
     QueryUrgency.LOW: [
-        "show me", "display", "list", "general", "overview",
+        "show me",
+        "display",
+        "list",
+        "general",
+        "overview",
     ],
 }
 
@@ -69,7 +104,7 @@ MODEL_ROUTING = {
 
 
 def keyword_match(keyword, text):
-    return bool(re.search(r'\b' + re.escape(keyword) + r'\b', text, re.IGNORECASE))
+    return bool(re.search(r"\b" + re.escape(keyword) + r"\b", text, re.IGNORECASE))
 
 
 def classify_complexity(query: str) -> QueryComplexity:

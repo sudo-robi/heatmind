@@ -140,9 +140,17 @@ def get_location_context(latitude: float, longitude: float) -> LocationContext:
 def format_location_context(context: LocationContext) -> str:
     lines = [f"**Location Context ({context.latitude:.4f}, {context.longitude:.4f}):**"]
     lines.append(f"  - Census Tract: {context.census_tract or 'N/A'}")
-    lines.append(f"  - Population Density: {context.population_density:,}/mi²" if context.population_density else "  - Population Density: N/A")
-    lines.append(f"  - Median Income: ${context.median_income:,}" if context.median_income else "  - Median Income: N/A")
-    lines.append(f"  - Elderly Population: {context.elderly_pct}%" if context.elderly_pct else "  - Elderly Population: N/A")
+    lines.append(
+        f"  - Population Density: {context.population_density:,}/mi²"
+        if context.population_density
+        else "  - Population Density: N/A"
+    )
+    lines.append(
+        f"  - Median Income: ${context.median_income:,}" if context.median_income else "  - Median Income: N/A"
+    )
+    lines.append(
+        f"  - Elderly Population: {context.elderly_pct}%" if context.elderly_pct else "  - Elderly Population: N/A"
+    )
     lines.append(f"  - Heat Vulnerability: {context.heat_vulnerability.upper()}")
     lines.append(f"  - Risk Score: {context.risk_score:.2f}/1.00")
     if context.risk_factors:

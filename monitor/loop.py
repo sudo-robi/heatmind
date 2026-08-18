@@ -26,12 +26,14 @@ class MonitorLoop:
         self._system_session_id = self.memory.create_session("monitor_system")
 
     def add_zone(self, name: str, polygon_aoi: dict, latitude: float, longitude: float):
-        self.zones.append({
-            "name": name,
-            "polygon_aoi": polygon_aoi,
-            "latitude": latitude,
-            "longitude": longitude,
-        })
+        self.zones.append(
+            {
+                "name": name,
+                "polygon_aoi": polygon_aoi,
+                "latitude": latitude,
+                "longitude": longitude,
+            }
+        )
 
     def _flatten_location_data(self, raw: dict) -> dict:
         locations = raw.get("locations", [])
@@ -114,12 +116,12 @@ class MonitorLoop:
             try:
                 reading = self.check_zone(zone)
                 if self.analyze_reading(reading):
-                    logger.warning("ALERT: %s: Threshold exceeded!", zone['name'])
+                    logger.warning("ALERT: %s: Threshold exceeded!", zone["name"])
                     self.trigger_emergency(zone, reading)
                 else:
-                    logger.info("  OK: %s: Normal conditions", zone['name'])
+                    logger.info("  OK: %s: Normal conditions", zone["name"])
             except Exception as e:
-                logger.error("  ERROR: %s: %s", zone['name'], type(e).__name__)
+                logger.error("  ERROR: %s: %s", zone["name"], type(e).__name__)
 
     def start(self):
         logger.info("Monitor started. Checking every %d minutes.", MONITOR_INTERVAL_MINUTES)

@@ -63,10 +63,7 @@ class TestQuickAgent:
 
     def test_handle_with_valid_params(self, mock_api, mock_memory):
         agent = QuickAgent()
-        result = agent.handle(
-            "test", make_session_id(),
-            {"latitude": 25.0, "longitude": 55.0, "date": "2026-08-18"}
-        )
+        result = agent.handle("test", make_session_id(), {"latitude": 25.0, "longitude": 55.0, "date": "2026-08-18"})
         assert "response" in result
         assert result["agent"] == "quick"
 
@@ -84,11 +81,13 @@ class TestQuickAgent:
 
     def test_format_response(self, mock_api, mock_memory):
         agent = QuickAgent()
-        response = agent._format_response({
-            "heat_index_celsius": 42.5,
-            "relative_humidity_percent": 65,
-            "air_quality:idx": 120,
-        })
+        response = agent._format_response(
+            {
+                "heat_index_celsius": 42.5,
+                "relative_humidity_percent": 65,
+                "air_quality:idx": 120,
+            }
+        )
         assert "42.5" in response
         assert "65" in response
         assert "120" in response
@@ -106,28 +105,19 @@ class TestQuickAgent:
 
     def test_handle_invalid_latitude(self, mock_api, mock_memory):
         agent = QuickAgent()
-        result = agent.handle(
-            "test", make_session_id(),
-            {"latitude": 91.0, "longitude": 55.0, "date": "2026-08-18"}
-        )
+        result = agent.handle("test", make_session_id(), {"latitude": 91.0, "longitude": 55.0, "date": "2026-08-18"})
         assert "error" in result
         assert "Invalid latitude" in result["error"]
 
     def test_handle_invalid_longitude(self, mock_api, mock_memory):
         agent = QuickAgent()
-        result = agent.handle(
-            "test", make_session_id(),
-            {"latitude": 25.0, "longitude": 181.0, "date": "2026-08-18"}
-        )
+        result = agent.handle("test", make_session_id(), {"latitude": 25.0, "longitude": 181.0, "date": "2026-08-18"})
         assert "error" in result
         assert "Invalid longitude" in result["error"]
 
     def test_handle_boundary_coords(self, mock_api, mock_memory):
         agent = QuickAgent()
-        result = agent.handle(
-            "test", make_session_id(),
-            {"latitude": 90.0, "longitude": 180.0, "date": "2026-08-18"}
-        )
+        result = agent.handle("test", make_session_id(), {"latitude": 90.0, "longitude": 180.0, "date": "2026-08-18"})
         assert "response" in result
 
 
@@ -161,8 +151,7 @@ class TestDeepAgent:
             ]
             agent = DeepAgent()
             result = agent.handle(
-                "test", make_session_id(),
-                {"latitude": 25.0, "longitude": 55.0, "date": "2026-08-18"}
+                "test", make_session_id(), {"latitude": 25.0, "longitude": 55.0, "date": "2026-08-18"}
             )
             assert result["agent"] == "deep"
 
@@ -180,13 +169,14 @@ class TestDeepAgent:
             ]
             agent = DeepAgent()
             result = agent.handle(
-                "test", make_session_id(),
+                "test",
+                make_session_id(),
                 {
                     "latitude": 25.0,
                     "longitude": 55.0,
                     "date": "2026-08-18",
                     "polygon_aoi": {"type": "FeatureCollection", "features": []},
-                }
+                },
             )
             assert result["agent"] == "deep"
             client.create_heatmap.assert_called_once()
@@ -212,11 +202,13 @@ class TestDeepAgent:
     def test_format_response_full(self):
         with patch("agents.deep_agent.FortyGuardClient"), patch("agents.deep_agent.SessionMemory"):
             agent = DeepAgent()
-            response = agent._format_response({
-                "env_params": {"heat_index_celsius": 42.5, "relative_humidity_percent": 65, "air_quality:idx": 120},
-                "heatmap": {"stats_data": {"Temperature_stats": {"Minimum": 35, "Maximum": 48, "Mean": 41}}},
-                "heat_intelligence": {"report": "done"},
-            })
+            response = agent._format_response(
+                {
+                    "env_params": {"heat_index_celsius": 42.5, "relative_humidity_percent": 65, "air_quality:idx": 120},
+                    "heatmap": {"stats_data": {"Temperature_stats": {"Minimum": 35, "Maximum": 48, "Mean": 41}}},
+                    "heat_intelligence": {"report": "done"},
+                }
+            )
             assert "42.5" in response
             assert "Heat Intelligence Report" in response
 
@@ -236,8 +228,7 @@ class TestDeepAgent:
         with patch("agents.deep_agent.FortyGuardClient"), patch("agents.deep_agent.SessionMemory"):
             agent = DeepAgent()
             result = agent.handle(
-                "test", make_session_id(),
-                {"latitude": -91.0, "longitude": 55.0, "date": "2026-08-18"}
+                "test", make_session_id(), {"latitude": -91.0, "longitude": 55.0, "date": "2026-08-18"}
             )
             assert "error" in result
             assert "Invalid latitude" in result["error"]
@@ -246,8 +237,7 @@ class TestDeepAgent:
         with patch("agents.deep_agent.FortyGuardClient"), patch("agents.deep_agent.SessionMemory"):
             agent = DeepAgent()
             result = agent.handle(
-                "test", make_session_id(),
-                {"latitude": 25.0, "longitude": -200.0, "date": "2026-08-18"}
+                "test", make_session_id(), {"latitude": 25.0, "longitude": -200.0, "date": "2026-08-18"}
             )
             assert "error" in result
             assert "Invalid longitude" in result["error"]
@@ -276,8 +266,7 @@ class TestEmergencyAgent:
                     client.wait_for_result.return_value = {"heat_index_celsius": 50}
                     agent = EmergencyAgent()
                     result = agent.handle(
-                        "test", make_session_id(),
-                        {"latitude": 25.0, "longitude": 55.0, "date": "2026-08-18"}
+                        "test", make_session_id(), {"latitude": 25.0, "longitude": 55.0, "date": "2026-08-18"}
                     )
                     mock_alert.assert_called_once()
                     assert result["agent"] == "emergency"
@@ -401,8 +390,7 @@ class TestEmergencyAgent:
                     client.wait_for_result.return_value = {"heat_index_celsius": 0}
                     agent = EmergencyAgent()
                     result = agent.handle(
-                        "test", make_session_id(),
-                        {"latitude": 25, "longitude": 55, "date": "2026-08-18"}
+                        "test", make_session_id(), {"latitude": 25, "longitude": 55, "date": "2026-08-18"}
                     )
                     assert result["severity"] == "normal"
 
@@ -416,8 +404,7 @@ class TestEmergencyAgent:
                     client.wait_for_result.return_value = {"heat_index_celsius": -10}
                     agent = EmergencyAgent()
                     result = agent.handle(
-                        "test", make_session_id(),
-                        {"latitude": 25, "longitude": 55, "date": "2026-08-18"}
+                        "test", make_session_id(), {"latitude": 25, "longitude": 55, "date": "2026-08-18"}
                     )
                     assert result["severity"] == "normal"
 
@@ -431,8 +418,7 @@ class TestEmergencyAgent:
                     client.wait_for_result.return_value = {"heat_index_celsius": 45}
                     agent = EmergencyAgent()
                     result = agent.handle(
-                        "test", make_session_id(),
-                        {"latitude": 25, "longitude": 55, "date": "2026-08-18"}
+                        "test", make_session_id(), {"latitude": 25, "longitude": 55, "date": "2026-08-18"}
                     )
                     assert "raw_data" in result
                     assert "env_params" in result["raw_data"]
@@ -443,8 +429,7 @@ class TestEmergencyAgent:
             with patch("agents.emergency_agent.send_alert"):
                 agent = EmergencyAgent()
                 result = agent.handle(
-                    "test", make_session_id(),
-                    {"latitude": 91.0, "longitude": 55.0, "date": "2026-08-18"}
+                    "test", make_session_id(), {"latitude": 91.0, "longitude": 55.0, "date": "2026-08-18"}
                 )
                 assert "error" in result
                 assert "Invalid latitude" in result["error"]
@@ -454,8 +439,7 @@ class TestEmergencyAgent:
             with patch("agents.emergency_agent.send_alert"):
                 agent = EmergencyAgent()
                 result = agent.handle(
-                    "test", make_session_id(),
-                    {"latitude": 25.0, "longitude": 181.0, "date": "2026-08-18"}
+                    "test", make_session_id(), {"latitude": 25.0, "longitude": 181.0, "date": "2026-08-18"}
                 )
                 assert "error" in result
                 assert "Invalid longitude" in result["error"]

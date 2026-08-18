@@ -73,8 +73,12 @@ class QuickAgent:
 
     def _format_response(self, data: dict) -> str:
         lines = ["**Current Heat Conditions:**"]
-        for key in ["heat_index_celsius", "apparent_temperature_celsius",
-                     "relative_humidity_percent", "air_quality:idx"]:
+        for key in [
+            "heat_index_celsius",
+            "apparent_temperature_celsius",
+            "relative_humidity_percent",
+            "air_quality:idx",
+        ]:
             if key in data and data[key] is not None:
                 label = key.replace("_", " ").replace(":", " ").title()
                 lines.append(f"- {label}: {data[key]}")

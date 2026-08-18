@@ -156,9 +156,7 @@ class HeatMindMCPClient:
             "date": args["date"],
             "zone": args.get("zone", "unknown"),
         }
-        result = self.quick_agent.handle(
-            f"Get heat conditions for {params['zone']}", session_id, params
-        )
+        result = self.quick_agent.handle(f"Get heat conditions for {params['zone']}", session_id, params)
         return {
             "tool": "query_heat_conditions",
             "result": result,
@@ -178,9 +176,7 @@ class HeatMindMCPClient:
             "zone": args.get("zone", "unknown"),
             "polygon_aoi": args.get("polygon_aoi"),
         }
-        result = self.deep_agent.handle(
-            f"Deep analysis for {params['zone']}", session_id, params
-        )
+        result = self.deep_agent.handle(f"Deep analysis for {params['zone']}", session_id, params)
         return {
             "tool": "deep_heat_analysis",
             "result": result,
@@ -200,9 +196,7 @@ class HeatMindMCPClient:
             "zone": args.get("zone", "unknown"),
             "temperature": args.get("temperature", 0),
         }
-        result = self.emergency_agent.handle(
-            f"Emergency check for {params['zone']}", session_id, params
-        )
+        result = self.emergency_agent.handle(f"Emergency check for {params['zone']}", session_id, params)
         return {
             "tool": "emergency_heat_check",
             "result": result,
@@ -345,11 +339,7 @@ def serve_mcp():
                 response = {
                     "jsonrpc": "2.0",
                     "id": request_id,
-                    "result": {
-                        "content": [
-                            {"type": "text", "text": json.dumps(result, indent=2)}
-                        ]
-                    },
+                    "result": {"content": [{"type": "text", "text": json.dumps(result, indent=2)}]},
                 }
             else:
                 response = {

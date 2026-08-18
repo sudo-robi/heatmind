@@ -35,7 +35,9 @@ class TestCreateEnvParams:
             resp.raise_for_status = MagicMock()
             mock.return_value = resp
             result = client.create_env_params(
-                latitude=25.0, longitude=55.0, temperature=35.0,
+                latitude=25.0,
+                longitude=55.0,
+                temperature=35.0,
                 start_date="2026-08-18",
             )
             assert result == "act-123"
@@ -47,7 +49,9 @@ class TestCreateEnvParams:
             resp.raise_for_status = MagicMock()
             mock.return_value = resp
             result = client.create_env_params(
-                latitude=25.0, longitude=55.0, temperature=35.0,
+                latitude=25.0,
+                longitude=55.0,
+                temperature=35.0,
                 start_date="2026-08-18",
             )
             assert result is None
@@ -56,7 +60,9 @@ class TestCreateEnvParams:
         with patch("api.fortyguard.requests.post") as mock:
             mock.side_effect = Exception("Connection refused")
             result = client.create_env_params(
-                latitude=25.0, longitude=55.0, temperature=35.0,
+                latitude=25.0,
+                longitude=55.0,
+                temperature=35.0,
                 start_date="2026-08-18",
             )
             assert result is None
@@ -68,7 +74,9 @@ class TestCreateEnvParams:
             resp.raise_for_status = MagicMock()
             mock.return_value = resp
             client.create_env_params(
-                latitude=25.0, longitude=55.0, temperature=35.0,
+                latitude=25.0,
+                longitude=55.0,
+                temperature=35.0,
                 start_date="2026-08-18",
             )
             call_kwargs = mock.call_args
@@ -138,8 +146,11 @@ class TestCreateHeatIntelligence:
         with patch("api.fortyguard.requests.post") as mock:
             mock.side_effect = Exception("Invalid")
             result = client.create_heat_intelligence(
-                latitude=25.0, longitude=55.0, temperature=42.5,
-                date="2026-08-18", analysis=["environmental"],
+                latitude=25.0,
+                longitude=55.0,
+                temperature=42.5,
+                date="2026-08-18",
+                analysis=["environmental"],
             )
             assert result is None
 
@@ -152,7 +163,8 @@ class TestCreateSatellite:
             resp.raise_for_status = MagicMock()
             mock.return_value = resp
             result = client.create_satellite(
-                latitude=25.0, longitude=55.0,
+                latitude=25.0,
+                longitude=55.0,
                 start_date="2026-08-18",
             )
             assert result == "sat-123"
@@ -260,7 +272,9 @@ class TestAPIClientEdgeCases:
         with patch("api.fortyguard.requests.post") as mock:
             mock.side_effect = Exception("Invalid latitude")
             result = client.create_env_params(
-                latitude=25.0, longitude=55.0, temperature=35.0,
+                latitude=25.0,
+                longitude=55.0,
+                temperature=35.0,
                 start_date="2026-08-18",
             )
             assert result is None
@@ -272,7 +286,9 @@ class TestAPIClientEdgeCases:
             resp.raise_for_status = MagicMock()
             mock.return_value = resp
             result = client.create_env_params(
-                latitude=90.0, longitude=180.0, temperature=35.0,
+                latitude=90.0,
+                longitude=180.0,
+                temperature=35.0,
                 start_date="2026-08-18",
             )
             assert result == "act-extreme"
@@ -284,7 +300,9 @@ class TestAPIClientEdgeCases:
             resp.raise_for_status = MagicMock()
             mock.return_value = resp
             result = client.create_env_params(
-                latitude=25.0, longitude=55.0, temperature=35.0,
+                latitude=25.0,
+                longitude=55.0,
+                temperature=35.0,
                 start_date="2020-01-01",
             )
             assert result == "act-past"
@@ -296,7 +314,9 @@ class TestAPIClientEdgeCases:
             resp.raise_for_status = MagicMock()
             mock.return_value = resp
             result = client.create_env_params(
-                latitude=25.0, longitude=55.0, temperature=35.0,
+                latitude=25.0,
+                longitude=55.0,
+                temperature=35.0,
                 start_date="2030-12-31",
             )
             assert result == "act-future"
@@ -320,7 +340,9 @@ class TestAPIClientEdgeCases:
             resp.raise_for_status = MagicMock()
             mock.return_value = resp
             result = client.create_env_params(
-                latitude=25.0, longitude=55.0, temperature=35.0,
+                latitude=25.0,
+                longitude=55.0,
+                temperature=35.0,
                 start_date="2026-08-18",
             )
             assert result == "act-many"
@@ -332,7 +354,9 @@ class TestAPIClientEdgeCases:
             resp.raise_for_status = MagicMock()
             mock.return_value = resp
             client.create_env_params(
-                latitude=25.0, longitude=55.0, temperature=35.0,
+                latitude=25.0,
+                longitude=55.0,
+                temperature=35.0,
                 start_date="2026-08-18",
             )
             headers = mock.call_args[1]["headers"]
