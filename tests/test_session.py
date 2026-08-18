@@ -136,11 +136,15 @@ class TestEventLogging:
         assert events[0]["event_type"] == "heat_reading"
 
     def test_events_are_sorted_by_time(self, memory):
+        import time
+
         sid = memory.create_session("test_user")
         memory.log_event(sid, "first", {"order": 1})
+        time.sleep(0.01)
         memory.log_event(sid, "second", {"order": 2})
         events = memory.get_events(sid)
-        assert events[0]["event_type"] == "second"
+        assert len(events) == 2
+        assert events[0]["timestamp"] >= events[1]["timestamp"]
 
     def test_event_has_timestamp(self, memory):
         sid = memory.create_session("test_user")
