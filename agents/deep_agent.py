@@ -1,6 +1,6 @@
 from api.fortyguard import FortyGuardClient
 from memory.session import SessionMemory
-from utils.validation import validate_coords
+from utils.validation import flatten_location_data, validate_coords
 
 
 class DeepAgent:
@@ -12,7 +12,6 @@ class DeepAgent:
         latitude = params.get("latitude")
         longitude = params.get("longitude")
         date = params.get("date")
-        params.get("zone", "unknown")
         polygon_aoi = params.get("polygon_aoi")
         temperature = params.get("temperature", 35.0)
 
@@ -40,7 +39,7 @@ class DeepAgent:
         if env_id:
             steps.append(("env_params", env_id))
             raw = self.api.wait_for_result(env_id)
-            results["env_params"] = self._flatten_location_data(raw)
+            results["env_params"] = flatten_location_data(raw)
 
         if polygon_aoi:
             heatmap_id = self.api.create_heatmap(
@@ -90,20 +89,6 @@ class DeepAgent:
             "raw_data": results,
             "api_calls": self.api.get_call_log(),
         }
-
-    def _flatten_location_data(self, raw: dict) -> dict:
-        locations = raw.get("locations", [])
-        if locations:
-            loc = locations[0]
-            params = loc.get("parameters", {})
-            flat = {}
-            for key, val in params.items():
-                if isinstance(val, list) and len(val) > 0:
-                    flat[key] = val[0]
-                else:
-                    flat[key] = val
-            return flat
-        return raw
 
     def _format_response(self, data: dict) -> str:
         lines = ["**Comprehensive Heat Risk Assessment:**\n"]

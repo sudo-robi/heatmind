@@ -11,8 +11,6 @@ MONGO_URI = os.getenv("MONGO_URI", "")
 MONGO_DB = os.getenv("MONGO_DB", "heatmind")
 
 
-# H2: Validate MONGO_URI is set — checked lazily when first used, not at import time,
-# so tests and conftest can set env vars before validation runs.
 def _validate_mongo_uri():
     if not os.environ.get("MONGO_URI"):
         raise ValueError(
@@ -21,12 +19,14 @@ def _validate_mongo_uri():
         )
 
 
+def _validate_api_key():
+    if not os.environ.get("FORTYGUARD_API_KEY"):
+        raise ValueError("FORTYGUARD_API_KEY is required. Set it in your .env file or environment.")
+
+
 ALERT_WEBHOOK_URL = os.getenv("ALERT_WEBHOOK_URL", "")
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "")
 
-# H3: In production, SMTP_PASS must come from a secrets manager (e.g., AWS Secrets
-# Manager, HashiCorp Vault, GCP Secret Manager). Never store credentials in code,
-# config files, or .env files committed to source control.
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")

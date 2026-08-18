@@ -2,7 +2,7 @@ import logging
 
 from api.fortyguard import FortyGuardClient
 from memory.session import SessionMemory
-from utils.validation import validate_coords
+from utils.validation import flatten_location_data, validate_coords
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +83,7 @@ class ChainAgent:
                 )
                 if activity_id:
                     step.result = self.api.wait_for_result(activity_id)
+                    step.result = flatten_location_data(step.result)
                     results["env_params"] = step.result
                     if step.result:
                         temperature = step.result.get("heat_index_celsius", temperature)

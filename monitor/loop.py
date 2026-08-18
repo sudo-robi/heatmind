@@ -12,6 +12,7 @@ from config import (
     MONITOR_INTERVAL_MINUTES,
 )
 from memory.session import SessionMemory
+from utils.validation import flatten_location_data
 
 logger = logging.getLogger(__name__)
 
@@ -35,20 +36,6 @@ class MonitorLoop:
             }
         )
 
-    def _flatten_location_data(self, raw: dict) -> dict:
-        locations = raw.get("locations", [])
-        if locations:
-            loc = locations[0]
-            params = loc.get("parameters", {})
-            flat = {}
-            for key, val in params.items():
-                if isinstance(val, list) and len(val) > 0:
-                    flat[key] = val[0]
-                else:
-                    flat[key] = val
-            return flat
-        return raw
-
     def check_zone(self, zone: dict) -> dict:
         date = datetime.now(UTC).strftime("%Y-%m-%d")
 
@@ -69,7 +56,7 @@ class MonitorLoop:
             filter_type=1,
         )
         env_result = self.api.wait_for_result(env_id) if env_id else {}
-        env_result = self._flatten_location_data(env_result)
+        env_result = flatten_location_data(env_result)
 
         reading = {
             "zone": zone["name"],

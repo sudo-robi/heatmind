@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from api.fortyguard import FortyGuardClient
 from memory.session import SessionMemory
 from utils.alerts import send_alert
-from utils.validation import validate_coords
+from utils.validation import flatten_location_data, validate_coords
 
 
 class EmergencyAgent:
@@ -40,7 +40,7 @@ class EmergencyAgent:
         env_data = {}
         if env_id:
             raw = self.api.wait_for_result(env_id)
-            env_data = self._flatten_location_data(raw)
+            env_data = flatten_location_data(raw)
 
         heat_index = env_data.get("heat_index_celsius", temperature)
         if isinstance(heat_index, list):
@@ -81,20 +81,6 @@ class EmergencyAgent:
             "raw_data": {"env_params": env_data, "alert": alert_payload},
             "api_calls": self.api.get_call_log(),
         }
-
-    def _flatten_location_data(self, raw: dict) -> dict:
-        locations = raw.get("locations", [])
-        if locations:
-            loc = locations[0]
-            params = loc.get("parameters", {})
-            flat = {}
-            for key, val in params.items():
-                if isinstance(val, list) and len(val) > 0:
-                    flat[key] = val[0]
-                else:
-                    flat[key] = val
-            return flat
-        return raw
 
     def _assess_severity(self, heat_index: float, env_data: dict) -> str:
         if heat_index >= 54:

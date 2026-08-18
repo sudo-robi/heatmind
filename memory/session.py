@@ -5,10 +5,10 @@ from pymongo import MongoClient
 
 from config import MONGO_DB, MONGO_URI, _validate_mongo_uri
 
-_client = None
+_client: MongoClient | None = None
 
 
-def get_client():
+def get_client() -> MongoClient:
     global _client
     if _client is None:
         _client = MongoClient(MONGO_URI)
@@ -28,7 +28,7 @@ class SessionMemory:
 
     def __init__(self):
         _validate_mongo_uri()
-        self.client = MongoClient(MONGO_URI)
+        self.client = get_client()
         self.db = self.client[MONGO_DB]
         self.sessions = self.db["sessions"]
         self.events = self.db["events"]

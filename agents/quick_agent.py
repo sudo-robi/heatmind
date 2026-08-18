@@ -1,6 +1,6 @@
 from api.fortyguard import FortyGuardClient
 from memory.session import SessionMemory
-from utils.validation import validate_coords
+from utils.validation import flatten_location_data, validate_coords
 
 
 class QuickAgent:
@@ -37,7 +37,7 @@ class QuickAgent:
             return {"error": "API request failed"}
 
         result = self.api.wait_for_result(activity_id)
-        result = self._flatten_location_data(result)
+        result = flatten_location_data(result)
 
         response = self._format_response(result)
         self.memory.add_message(session_id, "assistant", response)
@@ -56,20 +56,6 @@ class QuickAgent:
             "raw_data": result,
             "api_calls": self.api.get_call_log(),
         }
-
-    def _flatten_location_data(self, raw: dict) -> dict:
-        locations = raw.get("locations", [])
-        if locations:
-            loc = locations[0]
-            params = loc.get("parameters", {})
-            flat = {}
-            for key, val in params.items():
-                if isinstance(val, list) and len(val) > 0:
-                    flat[key] = val[0]
-                else:
-                    flat[key] = val
-            return flat
-        return raw
 
     def _format_response(self, data: dict) -> str:
         lines = ["**Current Heat Conditions:**"]

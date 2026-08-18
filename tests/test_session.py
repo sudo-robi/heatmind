@@ -218,8 +218,11 @@ class TestZoneHistory:
         assert len(history) == 0
 
     def test_zone_history_sorted(self, memory):
+        import time
+
         sid = memory.create_session("test_user")
         memory.log_event(sid, "heat_reading", {"zone": "Dubai", "temp": 40})
+        time.sleep(0.01)
         memory.log_event(sid, "heat_reading", {"zone": "Dubai", "temp": 45})
         history = memory.get_zone_history("Dubai")
         assert history[0]["data"]["temp"] == 45

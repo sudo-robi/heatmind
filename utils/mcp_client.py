@@ -2,8 +2,7 @@
 HeatMind MCP Client — Exposes HeatMind agents as MCP (Model Context Protocol) tools.
 
 This module allows external AI agents (Claude, GPT, Gemini) to use HeatMind's
-heat intelligence capabilities as MCP tools. Similar to the agenticAI-mcp-client
-pattern from the reference repos.
+heat intelligence capabilities as MCP tools.
 
 Usage:
     # As MCP server
@@ -16,6 +15,7 @@ Usage:
 """
 
 import json
+import logging
 import os
 import sys
 import time
@@ -27,6 +27,10 @@ from agents.quick_agent import QuickAgent
 from agents.router import route_query
 from config import FORTYGUARD_API_KEY
 from memory.session import SessionMemory
+
+logger = logging.getLogger(__name__)
+
+MAX_REQUEST_BODY_SIZE = 1024 * 1024  # 1MB
 
 
 @dataclass
@@ -109,6 +113,29 @@ HEATMIND_TOOLS = [
 ]
 
 
+def _validate_mcp_tool_args(tool_name: str, args: dict) -> str | None:
+    """Validate MCP tool arguments. Returns error message or None."""
+    required = {
+        "query_heat_conditions": ["latitude", "longitude", "date"],
+        "deep_heat_analysis": ["latitude", "longitude", "date"],
+        "emergency_heat_check": ["latitude", "longitude", "date"],
+        "route_query": ["query"],
+        "get_session_history": ["session_id"],
+    }
+    for field in required.get(tool_name, []):
+        if field not in args or args[field] is None:
+            return f"Missing required argument: {field}"
+
+    if tool_name in ("query_heat_conditions", "deep_heat_analysis", "emergency_heat_check"):
+        lat = args.get("latitude")
+        lon = args.get("longitude")
+        if not isinstance(lat, (int, float)) or not (-90 <= lat <= 90):
+            return f"Invalid latitude: {lat}"
+        if not isinstance(lon, (int, float)) or not (-180 <= lon <= 180):
+            return f"Invalid longitude: {lon}"
+    return None
+
+
 class HeatMindMCPClient:
     """MCP client for HeatMind heat intelligence system."""
 
@@ -131,6 +158,10 @@ class HeatMindMCPClient:
 
     def call_tool(self, tool_name: str, arguments: dict) -> dict:
         """Execute an MCP tool."""
+        validation_error = _validate_mcp_tool_args(tool_name, arguments)
+        if validation_error:
+            return {"error": validation_error}
+
         if tool_name == "query_heat_conditions":
             return self._query_heat_conditions(arguments)
         elif tool_name == "deep_heat_analysis":
@@ -264,12 +295,10 @@ def serve_mcp():
     """Run HeatMind as an MCP server (stdio transport)."""
     client = HeatMindMCPClient()
 
-    # C3: MCP shared secret authentication
     mcp_secret = os.getenv("MCP_SECRET", "")
     if not mcp_secret:
         print("WARNING: MCP_SECRET not set. MCP server will accept any request.", file=sys.stderr)
 
-    # H6: Rate limiting — 60 requests per minute per server instance
     request_timestamps: list[float] = []
     RATE_LIMIT = 60
     RATE_WINDOW = 60.0
@@ -279,12 +308,16 @@ def serve_mcp():
 
     for line in sys.stdin:
         try:
+            if len(line) > MAX_REQUEST_BODY_SIZE:
+                logger.warning("Request body exceeds size limit (%d bytes)", MAX_REQUEST_BODY_SIZE)
+                continue
+
             request = json.loads(line.strip())
 
-            # C3: Validate shared secret token if configured
             if mcp_secret:
                 token = request.get("params", {}).get("token") or request.get("token", "")
                 if token != mcp_secret:
+                    logger.warning("MCP auth failed: invalid token")
                     response = {
                         "jsonrpc": "2.0",
                         "id": request.get("id"),
@@ -298,10 +331,8 @@ def serve_mcp():
             params = request.get("params", {})
             request_id = request.get("id")
 
-            # H6: Rate limiting check
             now = time.time()
             request_timestamps.append(now)
-            # Prune timestamps outside the window
             request_timestamps[:] = [t for t in request_timestamps if now - t < RATE_WINDOW]
             if len(request_timestamps) > RATE_LIMIT:
                 response = {
@@ -354,6 +385,7 @@ def serve_mcp():
         except json.JSONDecodeError:
             continue
         except Exception:
+            logger.error("MCP server internal error", exc_info=True)
             error_response = {
                 "jsonrpc": "2.0",
                 "id": request_id if "request_id" in locals() else None,

@@ -1,5 +1,6 @@
 import logging
 import time
+from collections import deque
 
 import requests
 
@@ -18,9 +19,26 @@ class FortyGuardClient:
             "api-key": self.api_key,
             "Content-Type": "application/json",
         }
-        self._call_log = []
+        self._call_log: deque = deque(maxlen=100)
+        self._request_timestamps: deque = deque(maxlen=50)
+        self._rate_limit = 30
+        self._rate_window = 60.0
+
+    def _check_rate_limit(self):
+        now = time.time()
+        self._request_timestamps.append(now)
+        self._request_timestamps = deque(
+            (t for t in self._request_timestamps if now - t < self._rate_window),
+            maxlen=50,
+        )
+        if len(self._request_timestamps) > self._rate_limit:
+            sleep_time = self._rate_window - (now - self._request_timestamps[0])
+            if sleep_time > 0:
+                logger.warning("Rate limit hit, sleeping %.1fs", sleep_time)
+                time.sleep(sleep_time)
 
     def _post(self, endpoint: str, payload: dict) -> dict:
+        self._check_rate_limit()
         url = f"{self.base_url}/{endpoint}"
         self._call_log.append({"method": "POST", "url": url, "timestamp": time.time()})
         logger.info("POST %s", url)
@@ -29,6 +47,7 @@ class FortyGuardClient:
         return response.json()
 
     def _get(self, endpoint: str) -> dict:
+        self._check_rate_limit()
         url = f"{self.base_url}/{endpoint}"
         self._call_log.append({"method": "GET", "url": url, "timestamp": time.time()})
         logger.info("GET %s", url)
@@ -37,7 +56,7 @@ class FortyGuardClient:
         return response.json()
 
     def get_call_log(self) -> list:
-        log = self._call_log.copy()
+        log = list(self._call_log)
         self._call_log.clear()
         return log
 
