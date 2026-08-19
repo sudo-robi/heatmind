@@ -138,6 +138,7 @@ class TestHeatMindMCPClient:
     @pytest.fixture
     def client(self):
         with (
+            patch("utils.mcp_client.SessionMemory"),
             patch("utils.mcp_client.QuickAgent"),
             patch("utils.mcp_client.DeepAgent"),
             patch("utils.mcp_client.EmergencyAgent"),
