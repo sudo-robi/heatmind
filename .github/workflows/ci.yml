@@ -7,8 +7,7 @@ on:
     branches: [main]
 
 env:
-  PYTHON_VERSION: "3.14"
-  MONGO_URI: mongodb://localhost:27017
+  PYTHON_VERSION: "3.12"
   PYTHONPATH: ${{ github.workspace }}
 
 jobs:
@@ -41,7 +40,7 @@ jobs:
           pip install -r requirements-test.txt
       - name: Run unit tests with coverage
         run: |
-          pytest tests/ -v --cov=. --cov-report=xml --cov-report=term-missing --tb=short
+          pytest tests/ -v --cov=. --cov-report=xml --cov-report=term-missing --tb=short -x
       - name: Upload coverage
         uses: codecov/codecov-action@v3
         with:
@@ -69,8 +68,7 @@ jobs:
       - name: Wait for MongoDB
         run: |
           for i in $(seq 1 30); do
-            if mongosh --eval "db.adminCommand('ping')" --quiet 2>/dev/null; then
-              echo "MongoDB is ready"
+            if python -c "import pymongo; c=pymongo.MongoClient('mongodb://localhost:27017', serverSelectionTimeoutMS=2000); c.admin.command('ping'); print('MongoDB ready')" 2>/dev/null; then
               break
             fi
             echo "Waiting for MongoDB... ($i)"
@@ -100,8 +98,7 @@ jobs:
       - name: Wait for MongoDB
         run: |
           for i in $(seq 1 30); do
-            if mongosh --eval "db.adminCommand('ping')" --quiet 2>/dev/null; then
-              echo "MongoDB is ready"
+            if python -c "import pymongo; c=pymongo.MongoClient('mongodb://localhost:27017', serverSelectionTimeoutMS=2000); c.admin.command('ping'); print('MongoDB ready')" 2>/dev/null; then
               break
             fi
             echo "Waiting for MongoDB... ($i)"
@@ -109,7 +106,7 @@ jobs:
           done
       - name: Run integration tests
         run: |
-          pytest tests/test_integration.py -v --tb=long
+          pytest tests/test_integration.py -v --tb=short
 
   test-edge-cases:
     name: Edge Case Tests
@@ -131,8 +128,7 @@ jobs:
       - name: Wait for MongoDB
         run: |
           for i in $(seq 1 30); do
-            if mongosh --eval "db.adminCommand('ping')" --quiet 2>/dev/null; then
-              echo "MongoDB is ready"
+            if python -c "import pymongo; c=pymongo.MongoClient('mongodb://localhost:27017', serverSelectionTimeoutMS=2000); c.admin.command('ping'); print('MongoDB ready')" 2>/dev/null; then
               break
             fi
             echo "Waiting for MongoDB... ($i)"
@@ -140,7 +136,7 @@ jobs:
           done
       - name: Run all edge case tests
         run: |
-          pytest tests/ -v -k "edge or Edge or EdgeCases or extreme or negative or empty or long or unicode or missing or nonexistent" --tb=long
+          pytest tests/ -v -k "edge or Edge or EdgeCases or extreme or negative or empty or long or unicode or missing or nonexistent" --tb=short
 
   smoke-test:
     name: Smoke Test
@@ -156,7 +152,7 @@ jobs:
           pip install -r requirements-test.txt
       - name: Run end-to-end smoke tests
         run: |
-          pytest test_all.py -v --tb=short
+          python test_all.py
 
   build-verify:
     name: Build Verification

@@ -498,6 +498,62 @@ def parse_location_from_query(query):
     return st.session_state.last_location
 
 
+@st.cache_data(ttl=300, show_spinner=False)
+def fetch_zone_heat_data(lat: float, lng: float, zone: str) -> dict:
+    """Fetch real heat data from FortyGuard API for a zone. Cached 5 min."""
+    if not FORTYGUARD_API_KEY:
+        return {"error": "No API key", "zone": zone}
+    try:
+        from api.fortyguard import FortyGuardClient
+        from utils.validation import flatten_location_data
+
+        client = FortyGuardClient()
+        today = datetime.now().strftime("%Y-%m-%d")
+        activity_id = client.create_env_params(
+            latitude=lat,
+            longitude=lng,
+            temperature=35.0,
+            start_date=today,
+            start_time="14:00",
+            filter_type=1,
+        )
+        if not activity_id:
+            return {"error": "API request failed", "zone": zone}
+        result = client.wait_for_result(activity_id, timeout=60, poll_interval=3)
+        flat = flatten_location_data(result)
+        return {
+            "zone": zone,
+            "heat_index": flat.get("heat_index_celsius"),
+            "humidity": flat.get("relative_humidity_percent"),
+            "aqi": flat.get("air_quality:idx"),
+            "apparent_temp": flat.get("apparent_temperature_celsius"),
+            "status": "ok",
+        }
+    except Exception as e:
+        return {"error": str(e), "zone": zone}
+
+
+def fetch_all_zones() -> list[dict]:
+    """Fetch heat data for all monitored zones."""
+    zones = [
+        {"name": "Dubai Downtown", "lat": 25.2048, "lng": 55.2708},
+        {"name": "Abu Dhabi Central", "lat": 24.4539, "lng": 54.3773},
+        {"name": "Sharjah City", "lat": 25.3463, "lng": 55.4209},
+        {"name": "Phoenix, AZ", "lat": 33.4484, "lng": -112.0740},
+    ]
+    results = []
+    for z in zones:
+        data = fetch_zone_heat_data(z["lat"], z["lng"], z["name"])
+        hi = data.get("heat_index")
+        if hi is not None:
+            is_alert = hi >= HEAT_INDEX_THRESHOLD
+            status = "alert" if is_alert else "active"
+        else:
+            status = "unknown"
+        results.append({**z, **data, "status": status})
+    return results
+
+
 def check_backend_health():
     try:
         import urllib.request
@@ -900,48 +956,64 @@ def main():
             f'<div style="color:{C["text_muted"]};font-size:1rem;margin-bottom:16px;">Checking every <strong style="color:{C["text"]};font-weight:700;">{MONITOR_INTERVAL_MINUTES} minutes</strong> &middot; Thresholds: <strong style="color:{C["yellow"]};">{HEAT_THRESHOLD_C}°C</strong> / <strong style="color:{C["red"]};">HI {HEAT_INDEX_THRESHOLD}</strong></div>',
             unsafe_allow_html=True,
         )
-        zones = [
-            {"name": "Dubai Downtown", "lat": 25.2048, "lng": 55.2708, "status": "active", "temp": "42°C", "hi": "48"},
-            {"name": "Abu Dhabi Central", "lat": 24.4539, "lng": 54.3773, "status": "active", "temp": "40°C", "hi": "45"},
-            {"name": "Sharjah City", "lat": 25.3463, "lng": 55.4209, "status": "alert", "temp": "46°C", "hi": "54"},
-        ]
-        zc1, zc2, zc3 = st.columns(3)
-        for col, z in zip([zc1, zc2, zc3], zones, strict=True):
+
+        if st.button("Refresh Zone Data", key="refresh_zones", use_container_width=True):
+            fetch_zone_heat_data.clear()
+            st.rerun()
+
+        with st.spinner("Fetching live heat data from FortyGuard API..."):
+            zones = fetch_all_zones()
+
+        zc_cols = st.columns(min(len(zones), 4))
+        for col, z in zip(zc_cols, zones, strict=True):
             is_alert = z["status"] == "alert"
-            bc = C["red"] if is_alert else C["green"]
-            sc = C["red"] if is_alert else C["green"]
-            st_txt = "ALERT" if is_alert else "Active"
-            si = svg("alert") if is_alert else svg("check")
+            is_unknown = z["status"] == "unknown"
+            bc = C["red"] if is_alert else C["green"] if not is_unknown else C["text_dim"]
+            sc = C["red"] if is_alert else C["green"] if not is_unknown else C["text_dim"]
+            st_txt = "ALERT" if is_alert else "Active" if not is_unknown else "No Data"
+            si = svg("alert") if is_alert else svg("check") if not is_unknown else svg("alert")
+            hi = z.get("heat_index")
+            hum = z.get("humidity")
+            aqi = z.get("aqi")
             with col:
+                hi_str = f"{hi:.0f}" if hi is not None else "—"
+                hum_str = f"{hum:.0f}%" if hum is not None else "—"
+                aqi_str = f"{aqi:.0f}" if aqi is not None else "—"
                 st.markdown(
-                    f"""<div class="zone-card" style="border-left:3px solid {bc};min-height:120px;">
+                    f"""<div class="zone-card" style="border-left:3px solid {bc};min-height:140px;">
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
                         <div>
                             <div class="zone-name">{z["name"]}</div>
-                            <div class="zone-coords" style="font-size:0.8rem;">{z["lat"]:.4f}, {z["lng"]:.4f}</div>
+                            <div class="zone-coords" style="font-size:0.78rem;">{z["lat"]:.4f}, {z["lng"]:.4f}</div>
                         </div>
                         <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:{sc}20;border:1px solid {sc}40;border-radius:6px;color:{sc};font-weight:700;font-size:0.78rem;">{si} {st_txt}</span>
                     </div>
-                    <div style="display:flex;gap:12px;margin-top:8px;">
+                    <div style="display:flex;gap:14px;margin-top:8px;">
                         <div style="text-align:center;">
-                            <div style="font-size:1.4rem;font-weight:800;color:{sc};font-family:'JetBrains Mono',monospace;">{z["temp"]}</div>
-                            <div style="font-size:0.72rem;color:{C["text_dim"]};font-weight:600;text-transform:uppercase;">Temperature</div>
+                            <div style="font-size:1.3rem;font-weight:800;color:{sc};font-family:'JetBrains Mono',monospace;">{hi_str}{"°C" if hi is not None else ""}</div>
+                            <div style="font-size:0.7rem;color:{C["text_dim"]};font-weight:600;text-transform:uppercase;">Heat Index</div>
                         </div>
                         <div style="text-align:center;">
-                            <div style="font-size:1.4rem;font-weight:800;color:{C["orange"]};font-family:'JetBrains Mono',monospace;">{z["hi"]}</div>
-                            <div style="font-size:0.72rem;color:{C["text_dim"]};font-weight:600;text-transform:uppercase;">Heat Index</div>
+                            <div style="font-size:1.3rem;font-weight:800;color:{C["cyan"]};font-family:'JetBrains Mono',monospace;">{hum_str}</div>
+                            <div style="font-size:0.7rem;color:{C["text_dim"]};font-weight:600;text-transform:uppercase;">Humidity</div>
+                        </div>
+                        <div style="text-align:center;">
+                            <div style="font-size:1.3rem;font-weight:800;color:{C["purple"]};font-family:'JetBrains Mono',monospace;">{aqi_str}</div>
+                            <div style="font-size:0.7rem;color:{C["text_dim"]};font-weight:600;text-transform:uppercase;">AQI</div>
                         </div>
                     </div>
                 </div>""",
                     unsafe_allow_html=True,
                 )
+
         st.markdown("")
         st.markdown(f'<div class="section-header">{svg("alert")} Alert Feed</div>', unsafe_allow_html=True)
-        if st.session_state.alert_count == 0:
+        alert_zones = [z for z in zones if z["status"] == "alert"]
+        if not alert_zones:
             st.markdown(
                 f"""<div class="alert-card-clear">
                 <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:1.1rem;">{svg("check")} All Clear</div>
-                <div style="margin-top:8px;opacity:0.9;font-size:0.9rem;">System is monitoring {len(zones)} zones. All within normal parameters.</div>
+                <div style="margin-top:8px;opacity:0.9;font-size:0.9rem;">Monitoring {len(zones)} zones. All within normal parameters.</div>
                 <div style="margin-top:8px;display:flex;gap:12px;font-size:0.82rem;opacity:0.8;">
                     <span>Last check: {datetime.now(UTC).strftime("%H:%M UTC")}</span>
                     <span>&middot;</span>
@@ -951,18 +1023,24 @@ def main():
                 unsafe_allow_html=True,
             )
         else:
-            st.markdown(
-                f"""<div class="alert-card">
-                <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:1.1rem;">{svg("alert")} {st.session_state.alert_count} Alert(s) Triggered</div>
-                <div style="margin-top:8px;opacity:0.9;font-size:0.9rem;">Emergency conditions detected in monitored zones.</div>
-                <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
-                    <span style="padding:4px 10px;background:rgba(255,255,255,0.15);border-radius:6px;font-size:0.82rem;font-weight:600;">Evacuate outdoor workers</span>
-                    <span style="padding:4px 10px;background:rgba(255,255,255,0.15);border-radius:6px;font-size:0.82rem;font-weight:600;">Open cooling centers</span>
-                    <span style="padding:4px 10px;background:rgba(255,255,255,0.15);border-radius:6px;font-size:0.82rem;font-weight:600;">Issue public warning</span>
-                </div>
-            </div>""",
-                unsafe_allow_html=True,
-            )
+            for z in alert_zones:
+                hi = z.get("heat_index")
+                hi_str = f"{hi:.0f}°C" if hi is not None else "N/A"
+                st.markdown(
+                    f"""<div class="alert-card" style="margin-bottom:8px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                        <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:1.05rem;">{svg("alert")} {z["name"]} — HI {hi_str}</div>
+                        <span style="padding:3px 8px;background:rgba(255,255,255,0.2);border-radius:6px;font-size:0.78rem;font-weight:700;">CRITICAL</span>
+                    </div>
+                    <div style="margin-top:8px;opacity:0.9;font-size:0.88rem;">Heat index exceeds threshold ({HEAT_INDEX_THRESHOLD}). Immediate action required.</div>
+                    <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+                        <span style="padding:3px 8px;background:rgba(255,255,255,0.15);border-radius:4px;font-size:0.78rem;">Evacuate outdoor workers</span>
+                        <span style="padding:3px 8px;background:rgba(255,255,255,0.15);border-radius:4px;font-size:0.78rem;">Open cooling centers</span>
+                        <span style="padding:3px 8px;background:rgba(255,255,255,0.15);border-radius:4px;font-size:0.78rem;">Issue public warning</span>
+                    </div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
 
 
     # ── Footer ──
