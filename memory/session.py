@@ -9,6 +9,25 @@ _events: list = []
 _decisions: list = []
 
 
+def _match_query(doc: dict, query: dict) -> bool:
+    for k, v in query.items():
+        if "." in k:
+            parts = k.split(".")
+            current = doc
+            for part in parts:
+                if not isinstance(current, dict):
+                    return False
+                current = current.get(part)
+                if current is None:
+                    return False
+            if current != v:
+                return False
+        else:
+            if doc.get(k) != v:
+                return False
+    return True
+
+
 class _InMemoryCollection:
     """Minimal in-memory drop-in for a PyMongo collection."""
 
@@ -20,9 +39,12 @@ class _InMemoryCollection:
         doc["_id"] = len(self._docs)
         self._docs.append(doc)
 
+    def _match_query(self, doc: dict, query: dict) -> bool:
+        return _match_query(doc, query)
+
     def find_one(self, query: dict) -> dict | None:
         for doc in self._docs:
-            if all(doc.get(k) == v for k, v in query.items()):
+            if _match_query(doc, query):
                 return doc
         return None
 
@@ -31,7 +53,7 @@ class _InMemoryCollection:
 
         class _Cursor:
             def __init__(self, docs, q):
-                self._docs = [d for d in docs if all(d.get(k) == v for k, v in q.items())]
+                self._docs = [d for d in docs if _match_query(d, q)]
                 self._sort_field = None
                 self._sort_dir = -1
                 self._limit_n = None

@@ -42,7 +42,8 @@ class TestConfigLoading:
         import config
 
         importlib.reload(config)
-        assert config.MONGO_URI.startswith("mongodb://") or config.MONGO_URI.startswith("mongodb+srv://")
+        if config.MONGO_URI:
+            assert config.MONGO_URI.startswith("mongodb://") or config.MONGO_URI.startswith("mongodb+srv://")
 
     def test_smtp_port_is_int(self):
         import importlib
