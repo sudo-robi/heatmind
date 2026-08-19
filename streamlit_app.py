@@ -1,3 +1,4 @@
+import contextlib
 import json
 import os
 import sys
@@ -10,12 +11,20 @@ import streamlit as st
 
 sys.path.insert(0, os.path.dirname(__file__))
 
+import config as _config
 from agents.deep_agent import DeepAgent
 from agents.emergency_agent import EmergencyAgent
 from agents.quick_agent import QuickAgent
 from agents.router import route_query
-from config import FORTYGUARD_API_KEY, HEAT_INDEX_THRESHOLD, HEAT_THRESHOLD_C, MONITOR_INTERVAL_MINUTES
+from config import HEAT_INDEX_THRESHOLD, HEAT_THRESHOLD_C, MONITOR_INTERVAL_MINUTES
 from memory.session import SessionMemory
+
+FORTYGUARD_API_KEY = _config.FORTYGUARD_API_KEY
+if not FORTYGUARD_API_KEY:
+    with contextlib.suppress(Exception):
+        FORTYGUARD_API_KEY = st.secrets.get("FORTYGUARD_API_KEY", "")
+if FORTYGUARD_API_KEY:
+    _config.FORTYGUARD_API_KEY = FORTYGUARD_API_KEY
 
 SVG = {
     "fire": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
