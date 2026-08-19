@@ -186,7 +186,6 @@ def cycling_processing(placeholder, escalate=False):
             info = next((s for s in STAGES if s["key"] == k), None)
             if info:
                 st.caption(f"{info['emoji']} {info['text']}")
-        time.sleep(0.3)
 
 
 def get_sentiment(score):
@@ -663,31 +662,24 @@ def main():
                 with status_area.container():
                     render_processing_status("classifying")
                     st.caption("🔍 Classifying query type...")
-                time.sleep(0.15)
                 with status_area.container():
                     render_processing_status("routing")
                     st.caption("🎯 Routing to optimal agent...")
-                time.sleep(0.15)
                 with status_area.container():
                     render_processing_status("analyzing")
                     st.caption("🧠 Analyzing heat data...")
-                time.sleep(0.15)
                 with status_area.container():
                     render_processing_status("processing")
                     st.caption("⚡ Processing with AI model...")
-                time.sleep(0.15)
                 with status_area.container():
                     render_processing_status("sentiment")
                     st.caption("💬 Analyzing response...")
-                time.sleep(0.15)
                 with status_area.container():
                     render_processing_status("escalating")
                     st.caption("🚨 Escalating to human agent...")
-                time.sleep(0.15)
                 with status_area.container():
                     render_processing_status("complete")
                     st.caption("✅ Response ready")
-                time.sleep(0.1)
                 status_area.empty()
                 result = handle_query(prompt)
                 result["agent"] = "emergency"
