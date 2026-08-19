@@ -1,5 +1,8 @@
+import os
 import uuid
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 def make_session_id():
@@ -44,6 +47,10 @@ class TestEndToEndFlow:
         routing3 = route_query(query3)
         assert routing3.agent == "emergency"
 
+    @pytest.mark.skipif(
+        not os.environ.get("MONGODB_URI"),
+        reason="Skip if MONGODB_URI not set (unit test without real MongoDB)",
+    )
     def test_memory_persists_across_queries(self):
         from memory.session import SessionMemory
 

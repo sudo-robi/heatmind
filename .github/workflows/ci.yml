@@ -173,7 +173,7 @@ jobs:
           python -c "from agents.deep_agent import DeepAgent"
           python -c "from agents.emergency_agent import EmergencyAgent"
           python -c "from agents.chain_agent import ChainAgent"
-          python -c "from agents.nlp_parser import NLParser"
+          python -c "from agents.nlp_parser import ParsedQuery"
           python -c "from memory.session import SessionMemory"
           python -c "from monitor.loop import MonitorLoop"
           python -c "from utils.alerts import send_alert"

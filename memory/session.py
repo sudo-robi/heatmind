@@ -61,7 +61,16 @@ class _InMemoryCollection:
             return
         if "$set" in update:
             for k, v in update["$set"].items():
-                doc[k] = v
+                if "." in k:
+                    parts = k.split(".")
+                    current = doc
+                    for part in parts[:-1]:
+                        if part not in current or not isinstance(current[part], dict):
+                            current[part] = {}
+                        current = current[part]
+                    current[parts[-1]] = v
+                else:
+                    doc[k] = v
         if "$inc" in update:
             for k, v in update["$inc"].items():
                 doc[k] = doc.get(k, 0) + v
