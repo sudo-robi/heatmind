@@ -120,6 +120,30 @@ class SessionMemory:
             },
         )
 
+    def add_message_bulk(self, session_id: str, messages: list[tuple[str, str]]):
+        """Add multiple messages at once. Each tuple is (role, content)."""
+        depth = 50
+        session = self.get_session(session_id)
+        if session:
+            depth = session.get("session_history_depth", 50)
+
+        now_iso = datetime.now(UTC).isoformat()
+        new_msgs = [{"role": role, "content": content, "timestamp": now_iso} for role, content in messages]
+
+        self.sessions.update_one(
+            {"session_id": session_id},
+            {
+                "$push": {
+                    "messages": {
+                        "$each": new_msgs,
+                        "$slice": -depth,
+                    }
+                },
+                "$set": {"last_active": datetime.now(UTC)},
+                "$inc": {"query_count": len(new_msgs)},
+            },
+        )
+
     def get_messages(self, session_id: str) -> list:
         """Get all messages for a session."""
         session = self.get_session(session_id)

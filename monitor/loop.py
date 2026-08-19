@@ -1,5 +1,6 @@
 import logging
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 
 import schedule
@@ -99,7 +100,8 @@ class MonitorLoop:
 
     def run_check(self):
         logger.info("Running heat check for %d zones...", len(self.zones))
-        for zone in self.zones:
+
+        def _check_one(zone):
             try:
                 reading = self.check_zone(zone)
                 if self.analyze_reading(reading):
@@ -109,6 +111,9 @@ class MonitorLoop:
                     logger.info("  OK: %s: Normal conditions", zone["name"])
             except Exception as e:
                 logger.error("  ERROR: %s: %s", zone["name"], type(e).__name__)
+
+        with ThreadPoolExecutor(max_workers=min(len(self.zones), 4)) as pool:
+            list(pool.map(_check_one, self.zones))
 
     def start(self):
         logger.info("Monitor started. Checking every %d minutes.", MONITOR_INTERVAL_MINUTES)

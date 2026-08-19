@@ -2,6 +2,14 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 
+_KEYWORD_PATTERNS: dict[str, re.Pattern] = {}
+
+
+def _compile_keyword(keyword: str) -> re.Pattern:
+    if keyword not in _KEYWORD_PATTERNS:
+        _KEYWORD_PATTERNS[keyword] = re.compile(r"\b" + re.escape(keyword) + r"\b", re.IGNORECASE)
+    return _KEYWORD_PATTERNS[keyword]
+
 
 class QueryComplexity(Enum):
     SIMPLE = "simple"
@@ -104,7 +112,7 @@ MODEL_ROUTING = {
 
 
 def keyword_match(keyword, text):
-    return bool(re.search(r"\b" + re.escape(keyword) + r"\b", text, re.IGNORECASE))
+    return bool(_compile_keyword(keyword).search(text))
 
 
 def classify_complexity(query: str) -> QueryComplexity:

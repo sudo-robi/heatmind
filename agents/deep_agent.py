@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+
 from api.fortyguard import FortyGuardClient
 from memory.session import SessionMemory
 from utils.validation import flatten_location_data, validate_coords
@@ -28,20 +30,24 @@ class DeepAgent:
         results = {}
         steps = []
 
-        env_id = self.api.create_env_params(
-            latitude=latitude,
-            longitude=longitude,
-            temperature=temperature,
-            start_date=date,
-            start_time=params.get("time", "14:00"),
-            filter_type=params.get("filter_type", 1),
-        )
-        if env_id:
-            steps.append(("env_params", env_id))
-            raw = self.api.wait_for_result(env_id)
-            results["env_params"] = flatten_location_data(raw)
+        def fetch_env():
+            env_id = self.api.create_env_params(
+                latitude=latitude,
+                longitude=longitude,
+                temperature=temperature,
+                start_date=date,
+                start_time=params.get("time", "14:00"),
+                filter_type=params.get("filter_type", 1),
+            )
+            if env_id:
+                steps.append(("env_params", env_id))
+                raw = self.api.wait_for_result(env_id)
+                return flatten_location_data(raw)
+            return None
 
-        if polygon_aoi:
+        def fetch_heatmap():
+            if not polygon_aoi:
+                return None
             heatmap_id = self.api.create_heatmap(
                 polygon_aoi=polygon_aoi,
                 start_date=date,
@@ -51,7 +57,19 @@ class DeepAgent:
             )
             if heatmap_id:
                 steps.append(("heatmap", heatmap_id))
-                results["heatmap"] = self.api.wait_for_result(heatmap_id)
+                return self.api.wait_for_result(heatmap_id)
+            return None
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            env_future = pool.submit(fetch_env)
+            heatmap_future = pool.submit(fetch_heatmap)
+            env_result = env_future.result()
+            heatmap_result = heatmap_future.result()
+
+        if env_result is not None:
+            results["env_params"] = env_result
+        if heatmap_result is not None:
+            results["heatmap"] = heatmap_result
 
         heat_index = temperature
         if "env_params" in results:

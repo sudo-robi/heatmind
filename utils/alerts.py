@@ -1,5 +1,6 @@
 import logging
 import smtplib
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -191,9 +192,13 @@ def send_console_alert(payload: dict):
 
 
 def send_alert(payload: dict):
-    """Send alert to all configured channels."""
+    """Send alert to all configured channels in parallel."""
     payload["timestamp"] = datetime.now(UTC).isoformat()
-    send_console_alert(payload)
-    send_slack_alert(payload)
-    send_webhook_alert(payload)
-    send_email_alert(payload)
+    channels = [
+        ("console", send_console_alert),
+        ("slack", send_slack_alert),
+        ("webhook", send_webhook_alert),
+        ("email", send_email_alert),
+    ]
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        list(pool.map(lambda c: c[1](payload), channels))

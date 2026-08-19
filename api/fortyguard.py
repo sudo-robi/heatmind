@@ -15,10 +15,13 @@ class FortyGuardClient:
             raise ValueError("FORTYGUARD_API_KEY is required")
         self.api_key = api_key
         self.base_url = FORTYGUARD_BASE_URL
-        self.headers = {
-            "api-key": self.api_key,
-            "Content-Type": "application/json",
-        }
+        self._session = requests.Session()
+        self._session.headers.update(
+            {
+                "api-key": self.api_key,
+                "Content-Type": "application/json",
+            }
+        )
         self._call_log: deque = deque(maxlen=100)
         self._request_timestamps: deque = deque(maxlen=50)
         self._rate_limit = 30
@@ -42,7 +45,7 @@ class FortyGuardClient:
         url = f"{self.base_url}/{endpoint}"
         self._call_log.append({"method": "POST", "url": url, "timestamp": time.time()})
         logger.info("POST %s", url)
-        response = requests.post(url, headers=self.headers, json=payload, timeout=30)
+        response = self._session.post(url, json=payload, timeout=30)
         response.raise_for_status()
         return response.json()
 
@@ -51,7 +54,7 @@ class FortyGuardClient:
         url = f"{self.base_url}/{endpoint}"
         self._call_log.append({"method": "GET", "url": url, "timestamp": time.time()})
         logger.info("GET %s", url)
-        response = requests.get(url, headers=self.headers, timeout=30)
+        response = self._session.get(url, timeout=30)
         response.raise_for_status()
         return response.json()
 

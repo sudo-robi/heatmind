@@ -104,6 +104,17 @@ INTENT_PATTERNS = {
 }
 
 
+US_CITIES_SORTED = sorted(US_CITIES.items(), key=lambda x: -len(x[0]))
+
+COMPILED_INTENT_PATTERNS = {
+    intent: [re.compile(p, re.IGNORECASE) for p in patterns] for intent, patterns in INTENT_PATTERNS.items()
+}
+
+_SHORT_CITY_PATTERNS = {
+    city: re.compile(rf"\b{re.escape(city)}\b", re.IGNORECASE) for city, _ in US_CITIES.items() if len(city) <= 3
+}
+
+
 @dataclass
 class ParsedQuery:
     intent: str = "current_conditions"
@@ -121,9 +132,9 @@ class ParsedQuery:
 
 def extract_location(query: str) -> tuple[str | None, float | None, float | None]:
     query_lower = query.lower()
-    for city, coords in sorted(US_CITIES.items(), key=lambda x: -len(x[0])):
+    for city, coords in US_CITIES_SORTED:
         if len(city) <= 3:
-            if re.search(rf"\b{re.escape(city)}\b", query_lower):
+            if _SHORT_CITY_PATTERNS[city].search(query_lower):
                 return city, coords["lat"], coords["lon"]
         elif city in query_lower:
             return city, coords["lat"], coords["lon"]
@@ -197,11 +208,8 @@ def extract_time(query: str) -> str | None:
 def classify_intent(query: str) -> tuple[str, float]:
     query_lower = query.lower()
     scores = {}
-    for intent, patterns in INTENT_PATTERNS.items():
-        score = 0
-        for pattern in patterns:
-            if re.search(pattern, query_lower):
-                score += 1
+    for intent, compiled_patterns in COMPILED_INTENT_PATTERNS.items():
+        score = sum(1 for p in compiled_patterns if p.search(query_lower))
         if score > 0:
             scores[intent] = score
     if not scores:
