@@ -206,10 +206,8 @@ def render_hero():
             <span style="color:{C["orange"]};filter:drop-shadow(0 0 8px {C["orange"]}80);">{svg("brain")}</span>
         </div>
         <div style="color:{C["text_muted"]};font-size:1.15rem;font-weight:600;letter-spacing:0.3px;">Multi-Agent Heat Intelligence System</div>
-        <div style="margin-top:14px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
-            <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:{C["surface"]};border:1px solid {C["border"]};border-radius:8px;font-size:0.88rem;font-weight:600;color:{C["text_muted"]};">{svg("shield")} Powered by FortyGuard</span>
-            <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:{C["green_dim"]}20;border:1px solid {C["green"]}40;border-radius:8px;font-size:0.88rem;font-weight:600;color:{C["green"]};">{svg("check")} 5 Agentic Patterns</span>
-            <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:{C["purple_dim"]}20;border:1px solid {C["purple"]}40;border-radius:8px;font-size:0.88rem;font-weight:600;color:{C["purple"]};">{svg("zap")} MCP Ready</span>
+        <div style="margin-top:14px;">
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:{C["surface"]};border:1px solid {C["border"]};border-radius:8px;font-size:0.88rem;font-weight:600;color:{C["text_muted"]};">{svg("shield")} Powered by FortyGuard Temperature API</span>
         </div>
     </div></div>""",
         unsafe_allow_html=True,
@@ -1055,7 +1053,7 @@ def main():
             Multi-Agent Heat Intelligence System &middot; Built for FortyGuard Hackathon'26
         </div>
         <div style="margin-top:6px;color:{C["text_dim"]};font-size:0.78rem;">
-            5 Agentic Patterns &middot; 460 Tests &middot; MCP Compatible &middot; Docker Ready
+            Built for FortyGuard Hackathon'26
         </div>
     </div>""",
         unsafe_allow_html=True,
