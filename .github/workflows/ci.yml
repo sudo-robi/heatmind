@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 env:
-  PYTHON_VERSION: "3.11"
+  PYTHON_VERSION: "3.14"
   MONGO_URI: mongodb://localhost:27017
   PYTHONPATH: ${{ github.workspace }}
 
@@ -39,18 +39,15 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install -r requirements-test.txt
-      - name: Run unit tests
+      - name: Run unit tests with coverage
         run: |
-          pytest tests/test_config.py tests/test_router.py -v --tb=short
-      - name: Run agent tests
-        run: |
-          pytest tests/test_agents.py -v --tb=short
-      - name: Run alert tests
-        run: |
-          pytest tests/test_alerts.py -v --tb=short
-      - name: Run API tests
-        run: |
-          pytest tests/test_api.py -v --tb=short
+          pytest tests/ -v --cov=. --cov-report=xml --cov-report=term-missing --tb=short
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.xml
+          flags: unittests
+          fail_ci_if_error: false
 
   test-memory:
     name: Memory Tests (MongoDB)
@@ -79,12 +76,9 @@ jobs:
             echo "Waiting for MongoDB... ($i)"
             sleep 2
           done
-      - name: Run memory tests
+      - name: Run memory + monitor tests
         run: |
-          pytest tests/test_session.py -v --tb=short
-      - name: Run monitor tests
-        run: |
-          pytest tests/test_monitor.py -v --tb=short
+          pytest tests/test_session.py tests/test_monitor.py -v --tb=short
 
   test-integration:
     name: Integration Tests
@@ -116,15 +110,6 @@ jobs:
       - name: Run integration tests
         run: |
           pytest tests/test_integration.py -v --tb=long
-      - name: Run all tests with coverage
-        run: |
-          pytest tests/ -v --cov=. --cov-report=xml --cov-report=term-missing --tb=short
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
-        with:
-          files: ./coverage.xml
-          flags: unittests
-          fail_ci_if_error: false
 
   test-edge-cases:
     name: Edge Case Tests
@@ -157,6 +142,22 @@ jobs:
         run: |
           pytest tests/ -v -k "edge or Edge or EdgeCases or extreme or negative or empty or long or unicode or missing or nonexistent" --tb=long
 
+  smoke-test:
+    name: Smoke Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-test.txt
+      - name: Run end-to-end smoke tests
+        run: |
+          pytest test_all.py -v --tb=short
+
   build-verify:
     name: Build Verification
     runs-on: ubuntu-latest
@@ -167,7 +168,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Verify imports
+      - name: Verify all imports
         run: |
           python -c "from config import *"
           python -c "from api.fortyguard import FortyGuardClient"
@@ -175,9 +176,15 @@ jobs:
           python -c "from agents.quick_agent import QuickAgent"
           python -c "from agents.deep_agent import DeepAgent"
           python -c "from agents.emergency_agent import EmergencyAgent"
+          python -c "from agents.chain_agent import ChainAgent"
+          python -c "from agents.nlp_parser import NLParser"
           python -c "from memory.session import SessionMemory"
           python -c "from monitor.loop import MonitorLoop"
           python -c "from utils.alerts import send_alert"
+          python -c "from utils.mcp_client import HeatMindMCPClient"
+          python -c "from utils.validation import validate_coords, flatten_location_data"
+          python -c "from utils.datasets import get_location_context"
+          python -c "from monitor.alerts import MonitorAlertManager"
       - name: Verify Streamlit app loads
         run: |
           timeout 5 python -c "import streamlit; print('Streamlit OK')" || true

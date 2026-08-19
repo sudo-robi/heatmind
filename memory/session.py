@@ -250,7 +250,10 @@ class SessionMemory:
         created = session.get("created_at")
         life = session.get("session_life", 60)
         if created:
-            elapsed = (datetime.now(UTC) - created).total_seconds() / 60
+            now = datetime.now(UTC)
+            if created.tzinfo is None:
+                now = now.replace(tzinfo=None)
+            elapsed = (now - created).total_seconds() / 60
             return elapsed > life
         return False
 

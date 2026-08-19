@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 """HeatMind end-to-end smoke test — runs every subsystem without external deps."""
 
-import json
+import os
 import sys
+
+# Set API key before any project imports (must override conftest.py default)
+os.environ["FORTYGUARD_API_KEY"] = "test-smoke-key"
+
+import json
 import time
 from unittest.mock import MagicMock, patch
 
@@ -357,4 +362,5 @@ check("analyze_reading alert", ml.analyze_reading(reading_hot) is True)
 print(f"\n{'='*60}")
 print(f"  RESULTS: {PASS} passed, {FAIL} failed, {PASS+FAIL} total")
 print(f"{'='*60}")
-sys.exit(0 if FAIL == 0 else 1)
+if __name__ == "__main__":
+    sys.exit(0 if FAIL == 0 else 1)
