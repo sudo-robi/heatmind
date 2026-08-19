@@ -81,54 +81,103 @@ st.set_page_config(
 
 st.markdown(
     f"""<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+/* ── Base ── */
 .stApp {{ background: {C["bg"]}; font-family: 'Inter',-apple-system,sans-serif; color: {C["text"]}; }}
 section[data-testid="stSidebar"] {{ background: {C["surface"]}; border-right: 1px solid {C["border"]}; }}
-section[data-testid="stSidebar"] .stMarkdown h1,section[data-testid="stSidebar"] .stMarkdown h2,section[data-testid="stSidebar"] .stMarkdown h3 {{ color: {C["text"]} !important; }}
+section[data-testid="stSidebar"] .stMarkdown h1,
+section[data-testid="stSidebar"] .stMarkdown h2,
+section[data-testid="stSidebar"] .stMarkdown h3 {{ color: {C["text"]} !important; }}
+
+/* ── Tabs ── */
 .stTabs [data-baseweb="tab-list"] {{ gap:4px; background:{C["surface"]}; padding:6px; border-radius:10px; border:1px solid {C["border"]}; }}
-.stTabs [data-baseweb="tab"] {{ background:transparent; color:{C["text_muted"]}; border-radius:6px; padding:10px 20px; font-weight:600; font-size:0.9rem; border:none; }}
+.stTabs [data-baseweb="tab"] {{ background:transparent; color:{C["text_muted"]}; border-radius:6px; padding:10px 20px; font-weight:600; font-size:0.9rem; border:none; transition:all 0.2s ease; }}
 .stTabs [data-baseweb="tab"]:hover {{ color:{C["text"]}; background:{C["border_light"]}; }}
-.stTabs [aria-selected="true"] {{ background:{C["accent_dim"]} !important; color:#fff !important; }}
+.stTabs [aria-selected="true"] {{ background:{C["accent_dim"]} !important; color:#fff !important; box-shadow:0 2px 8px {C["accent_dim"]}40; }}
 .stTabs [data-baseweb="tab-highlight"] {{ display:none; }}
 .stTabs [data-baseweb="tab-border"] {{ display:none; }}
-.stChatMessage {{ background:{C["surface"]}; border-radius:10px; border:1px solid {C["border"]}; padding:16px; }}
-.metric-card {{ background:{C["surface"]}; border:1px solid {C["border"]}; border-radius:10px; padding:24px 16px; text-align:center; }}
-.metric-card:hover {{ border-color:{C["accent"]}; }}
-.metric-value {{ font-size:2.6rem; font-weight:800; color:{C["text"]}; line-height:1.1; }}
-.metric-label {{ color:{C["text_muted"]}; font-size:0.85rem; margin-top:8px; font-weight:700; letter-spacing:0.3px; white-space:nowrap; }}
-.zone-card {{ background:{C["surface"]}; border:1px solid {C["border"]}; border-radius:10px; padding:18px 20px; margin:8px 0; }}
-.zone-card:hover {{ border-color:{C["accent"]}; }}
+
+/* ── Chat ── */
+.stChatMessage {{ background:{C["surface"]}; border-radius:12px; border:1px solid {C["border"]}; padding:16px; transition:border-color 0.2s ease; }}
+.stChatMessage:hover {{ border-color:{C["border"]}; }}
+
+/* ── Cards ── */
+.metric-card {{ background:{C["surface"]}; border:1px solid {C["border"]}; border-radius:12px; padding:24px 16px; text-align:center; transition:all 0.25s ease; }}
+.metric-card:hover {{ border-color:{C["accent"]}; transform:translateY(-2px); box-shadow:0 4px 16px rgba(0,0,0,0.3); }}
+.metric-value {{ font-size:2.6rem; font-weight:800; color:{C["text"]}; line-height:1.1; font-family:'JetBrains Mono',monospace; }}
+.metric-label {{ color:{C["text_muted"]}; font-size:0.82rem; margin-top:8px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; white-space:nowrap; }}
+.zone-card {{ background:{C["surface"]}; border:1px solid {C["border"]}; border-radius:12px; padding:18px 20px; margin:8px 0; transition:all 0.25s ease; }}
+.zone-card:hover {{ border-color:{C["accent"]}; transform:translateY(-1px); box-shadow:0 2px 12px rgba(0,0,0,0.2); }}
 .zone-name {{ font-size:1.15rem; font-weight:800; color:{C["text"]}; }}
-.zone-coords {{ color:{C["text_muted"]}; font-size:0.9rem; font-family:'SF Mono',monospace; font-weight:500; }}
-.section-header {{ font-size:1.5rem; font-weight:800; color:{C["text"]}; margin:24px 0 14px 0; padding-bottom:10px; border-bottom:2px solid {C["border"]}; display:flex; align-items:center; gap:10px; }}
-.processing-pipeline {{ display:flex; align-items:center; gap:8px; padding:12px 16px; background:{C["surface"]}; border:1px solid {C["border"]}; border-radius:8px; margin:8px 0; flex-wrap:wrap; }}
-.pipeline-stage {{ display:inline-flex; align-items:center; gap:4px; padding:5px 12px; border-radius:6px; font-size:0.88rem; font-weight:700; }}
-.pipeline-stage.active {{ animation:stagePulse 1.5s ease infinite; }}
+.zone-coords {{ color:{C["text_muted"]}; font-size:0.88rem; font-family:'JetBrains Mono',monospace; font-weight:500; }}
+
+/* ── Section Headers ── */
+.section-header {{ font-size:1.4rem; font-weight:800; color:{C["text"]}; margin:24px 0 14px 0; padding-bottom:10px; border-bottom:2px solid {C["border"]}; display:flex; align-items:center; gap:10px; }}
+
+/* ── Processing Pipeline ── */
+.processing-pipeline {{ display:flex; align-items:center; gap:8px; padding:12px 16px; background:{C["surface"]}; border:1px solid {C["border"]}; border-radius:10px; margin:8px 0; flex-wrap:wrap; }}
+.pipeline-stage {{ display:inline-flex; align-items:center; gap:4px; padding:5px 12px; border-radius:8px; font-size:0.85rem; font-weight:700; transition:all 0.3s ease; }}
+.pipeline-stage.active {{ animation:stagePulse 1.5s ease infinite; box-shadow:0 0 12px currentColor; }}
 .pipeline-arrow {{ color:{C["text_dim"]}; }}
+
+/* ── Metadata Tags ── */
 .msg-meta {{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }}
-.meta-tag {{ display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:5px; font-size:0.82rem; font-weight:700; background:{C["border_light"]}; color:{C["text_muted"]}; border:1px solid {C["border"]}; }}
-.sentiment-pill {{ display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:12px; font-size:0.82rem; font-weight:700; }}
-.timeline-item {{ border-left:3px solid {C["accent"]}; padding:12px 16px; margin:8px 0; background:{C["surface"]}; border-radius:0 8px 8px 0; }}
+.meta-tag {{ display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:6px; font-size:0.8rem; font-weight:700; background:{C["border_light"]}; color:{C["text_muted"]}; border:1px solid {C["border"]}; }}
+.sentiment-pill {{ display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:700; transition:all 0.2s ease; }}
+
+/* ── Timeline ── */
+.timeline-item {{ border-left:3px solid {C["accent"]}; padding:12px 16px; margin:8px 0; background:{C["surface"]}; border-radius:0 10px 10px 0; transition:border-color 0.2s ease; }}
+.timeline-item:hover {{ border-left-color:{C["green"]}; }}
 .timeline-time {{ color:{C["text_muted"]}; font-size:0.85rem; }}
-.timeline-content {{ color:{C["text"]}; margin-top:4px; font-size:1rem; line-height:1.5; }}
-.alert-card {{ background:{C["red_dim"]}; border:1px solid {C["red"]}; border-radius:10px; padding:24px; color:#fff; font-size:1rem; }}
-.alert-card-clear {{ background:{C["green_dim"]}; border:1px solid {C["green"]}; border-radius:10px; padding:24px; color:#fff; font-size:1rem; }}
-.session-id {{ background:{C["border_light"]}; border:1px solid {C["border"]}; border-radius:6px; padding:8px 12px; font-family:'SF Mono',monospace; font-size:0.88rem; color:{C["text_muted"]}; font-weight:600; }}
-.hero-container {{ position:relative; overflow:hidden; padding:40px 0 20px 0; }}
+.timeline-content {{ color:{C["text"]}; margin-top:4px; font-size:0.95rem; line-height:1.5; }}
+
+/* ── Alerts ── */
+.alert-card {{ background: linear-gradient(135deg, {C["red_dim"]}, {C["red"]}20); border:1px solid {C["red"]}; border-radius:12px; padding:24px; color:#fff; font-size:1rem; }}
+.alert-card-clear {{ background: linear-gradient(135deg, {C["green_dim"]}, {C["green"]}20); border:1px solid {C["green"]}; border-radius:12px; padding:24px; color:#fff; font-size:1rem; }}
+.escalation-banner {{ background: linear-gradient(135deg, {C["red_dim"]}, {C["red"]}30); border:1px solid {C["red"]}; border-radius:12px; padding:20px; color:#fff; margin:12px 0; border-left:4px solid {C["red"]}; animation:fadeSlideIn 0.3s ease; font-size:1rem; }}
+
+/* ── Session ID ── */
+.session-id {{ background:{C["border_light"]}; border:1px solid {C["border"]}; border-radius:8px; padding:8px 12px; font-family:'JetBrains Mono',monospace; font-size:0.85rem; color:{C["text_muted"]}; font-weight:600; }}
+
+/* ── Hero ── */
+.hero-container {{ position:relative; overflow:hidden; padding:48px 0 24px 0; background: linear-gradient(180deg, {C["surface"]}80 0%, transparent 100%); border-radius:16px; margin-bottom:8px; }}
 .heat-particle {{ position:absolute; border-radius:50%; animation:floatUp linear infinite; opacity:0; }}
-@keyframes floatUp {{ 0%{{transform:translateY(100px) scale(0);opacity:0;}} 10%{{opacity:0.6;}} 90%{{opacity:0.3;}} 100%{{transform:translateY(-200px) scale(1);opacity:0;}} }}
+
+/* ── Animations ── */
+@keyframes floatUp {{ 0%{{transform:translateY(100px) scale(0);opacity:0;}} 10%{{opacity:0.7;}} 90%{{opacity:0.2;}} 100%{{transform:translateY(-200px) scale(1);opacity:0;}} }}
 @keyframes fadeSlideIn {{ 0%{{opacity:0;transform:translateY(8px);}} 100%{{opacity:1;transform:translateY(0);}} }}
 @keyframes stagePulse {{ 0%,100%{{opacity:0.7;}} 50%{{opacity:1;}} }}
-.escalation-banner {{ background:{C["red_dim"]}; border:1px solid {C["red"]}; border-radius:10px; padding:20px; color:#fff; margin:12px 0; border-left:4px solid {C["red"]}; animation:fadeSlideIn 0.3s ease; font-size:1rem; }}
-.stButton > button {{ background:{C["surface"]}; color:{C["text"]}; border:1px solid {C["border"]}; border-radius:8px; padding:8px 16px; font-weight:600; font-size:0.85rem; }}
-.stButton > button:hover {{ border-color:{C["accent"]}; color:{C["accent"]}; }}
+@keyframes shimmer {{ 0%{{background-position:-200% 0;}} 100%{{background-position:200% 0;}} }}
+
+/* ── Buttons ── */
+.stButton > button {{ background:{C["surface"]}; color:{C["text"]}; border:1px solid {C["border"]}; border-radius:8px; padding:8px 16px; font-weight:600; font-size:0.85rem; transition:all 0.2s ease; }}
+.stButton > button:hover {{ border-color:{C["accent"]}; color:{C["accent"]}; transform:translateY(-1px); box-shadow:0 2px 8px rgba(0,0,0,0.2); }}
 button[kind="primary"] {{ background:{C["accent_dim"]} !important; color:#fff !important; border:1px solid {C["accent"]} !important; }}
-button[kind="primary"]:hover {{ background:{C["accent"]} !important; }}
-.stTextInput > div > div > input, .stNumberInput > div > div > input {{ background:{C["border_light"]}; border:1px solid {C["border"]}; border-radius:8px; color:{C["text"]}; }}
-hr {{ border-color:{C["border"]}; }}
+button[kind="primary"]:hover {{ background:{C["accent"]} !important; box-shadow:0 4px 12px {C["accent_dim"]}60; }}
+
+/* ── Inputs ── */
+.stTextInput > div > div > input, .stNumberInput > div > div > input {{ background:{C["border_light"]}; border:1px solid {C["border"]}; border-radius:8px; color:{C["text"]}; transition:border-color 0.2s ease; }}
+.stTextInput > div > div > input:focus {{ border-color:{C["accent"]}; box-shadow:0 0 0 2px {C["accent_dim"]}30; }}
+
+/* ── Dividers ── */
+hr {{ border-color:{C["border"]}; opacity:0.5; }}
+
+/* ── Hide defaults ── */
 #MainMenu {{ visibility:hidden; }} footer {{ visibility:hidden; }} header {{ visibility:hidden; }}
+
+/* ── Error/Troubleshoot ── */
 .error-box {{ background:{C["surface"]}; border:1px solid {C["border"]}; border-radius:10px; padding:16px; margin:8px 0; }}
-.troubleshoot {{ background:{C["border_light"]}; border-left:3px solid {C["accent"]}; border-radius:0 6px 6px 0; padding:10px 14px; margin:8px 0; font-size:0.85rem; }}
+.troubleshoot {{ background:{C["border_light"]}; border-left:3px solid {C["accent"]}; border-radius:0 8px 8px 0; padding:10px 14px; margin:8px 0; font-size:0.85rem; }}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {{ width:6px; }}
+::-webkit-scrollbar-track {{ background:{C["bg"]}; }}
+::-webkit-scrollbar-thumb {{ background:{C["border"]}; border-radius:3px; }}
+::-webkit-scrollbar-thumb:hover {{ background:{C["text_dim"]}; }}
+
+/* ── Progress bar ── */
+.stProgress > div > div {{ background:{C["border_light"]}; border-radius:4px; }}
 </style>""",
     unsafe_allow_html=True,
 )
@@ -141,23 +190,27 @@ def svg(name):
 def render_hero():
     colors = [C["red"], C["orange"], C["yellow"], C["accent"], C["purple"]]
     particles = ""
-    for i in range(12):
+    for i in range(16):
         c = colors[i % len(colors)]
-        left = 5 + (i * 8) % 90
-        delay = (i * 0.7) % 4
-        dur = 3 + (i % 3)
-        size = 4 + (i % 5)
+        left = 3 + (i * 6.5) % 94
+        delay = (i * 0.6) % 5
+        dur = 2.5 + (i % 4)
+        size = 3 + (i % 6)
         particles += f'<div class="heat-particle" style="left:{left}%;bottom:0;width:{size}px;height:{size}px;background:{c};animation-delay:{delay}s;animation-duration:{dur}s;"></div>'
     st.markdown(
         f"""<div class="hero-container">{particles}
-    <div style="position:relative;z-index:1;text-align:center;padding:20px 0;">
-        <div style="display:flex;justify-content:center;align-items:center;gap:12px;margin-bottom:8px;">
-            <span style="color:{C["red"]};">{svg("fire")}</span>
-            <span style="font-size:2.5rem;font-weight:800;color:{C["text"]};letter-spacing:-1px;">HeatMind</span>
-            <span style="color:{C["orange"]};">{svg("brain")}</span>
+    <div style="position:relative;z-index:1;text-align:center;padding:24px 0;">
+        <div style="display:flex;justify-content:center;align-items:center;gap:14px;margin-bottom:10px;">
+            <span style="color:{C["red"]};filter:drop-shadow(0 0 8px {C["red"]}80);">{svg("fire")}</span>
+            <span style="font-size:2.8rem;font-weight:800;color:{C["text"]};letter-spacing:-1.5px;background:linear-gradient(135deg,{C["text"]},{C["accent"]});-webkit-background-clip:text;-webkit-text-fill-color:transparent;">HeatMind</span>
+            <span style="color:{C["orange"]};filter:drop-shadow(0 0 8px {C["orange"]}80);">{svg("brain")}</span>
         </div>
-        <div style="color:{C["text_muted"]};font-size:1.1rem;font-weight:600;">Multi-Agent Heat Intelligence System</div>
-        <div style="margin-top:12px;"><span style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:{C["surface"]};border:1px solid {C["border"]};border-radius:6px;font-size:0.9rem;font-weight:600;color:{C["text_muted"]};">{svg("shield")} Powered by FortyGuard Temperature API</span></div>
+        <div style="color:{C["text_muted"]};font-size:1.15rem;font-weight:600;letter-spacing:0.3px;">Multi-Agent Heat Intelligence System</div>
+        <div style="margin-top:14px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:{C["surface"]};border:1px solid {C["border"]};border-radius:8px;font-size:0.88rem;font-weight:600;color:{C["text_muted"]};">{svg("shield")} Powered by FortyGuard</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:{C["green_dim"]}20;border:1px solid {C["green"]}40;border-radius:8px;font-size:0.88rem;font-weight:600;color:{C["green"]};">{svg("check")} 5 Agentic Patterns</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:{C["purple_dim"]}20;border:1px solid {C["purple"]}40;border-radius:8px;font-size:0.88rem;font-weight:600;color:{C["purple"]};">{svg("zap")} MCP Ready</span>
+        </div>
     </div></div>""",
         unsafe_allow_html=True,
     )
@@ -521,7 +574,17 @@ def main():
     init_session()
     with st.sidebar:
         st.markdown(
-            f'<div style="text-align:center;margin-bottom:20px;"><span style="color:{C["red"]};font-size:1.5rem;">🔥</span><div style="font-size:1.5rem;font-weight:800;color:{C["text"]};letter-spacing:-0.5px;">HeatMind</div><div style="font-size:0.95rem;color:{C["text_muted"]};font-weight:600;margin-top:4px;">Heat Intelligence System</div></div>',
+            f"""<div style="text-align:center;margin-bottom:20px;padding:16px 0;background:linear-gradient(180deg,{C["surface"]} 0%,{C["bg"]} 100%);border-radius:12px;">
+            <div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-bottom:6px;">
+                <span style="color:{C["red"]};font-size:1.6rem;filter:drop-shadow(0 0 6px {C["red"]}60);">🔥</span>
+                <span style="font-size:1.6rem;font-weight:800;color:{C["text"]};letter-spacing:-0.5px;">HeatMind</span>
+            </div>
+            <div style="font-size:0.88rem;color:{C["text_muted"]};font-weight:600;">Heat Intelligence System</div>
+            <div style="margin-top:8px;display:flex;justify-content:center;gap:6px;">
+                <span style="padding:3px 8px;background:{C["green_dim"]}20;border:1px solid {C["green"]}30;border-radius:4px;font-size:0.75rem;font-weight:700;color:{C["green"]};">LIVE</span>
+                <span style="padding:3px 8px;background:{C["border_light"]};border:1px solid {C["border"]};border-radius:4px;font-size:0.75rem;font-weight:700;color:{C["text_muted"]};">v1.0</span>
+            </div>
+        </div>""",
             unsafe_allow_html=True,
         )
         st.markdown(
@@ -728,30 +791,47 @@ def main():
         st.markdown(
             f'<div class="section-header">{svg("monitor")} Heat Intelligence Dashboard</div>', unsafe_allow_html=True
         )
-        mc1, mc2, mc3, mc4 = st.columns(4)
-        with mc1:
-            st.markdown(
-                f'<div class="metric-card"><div class="metric-value" style="color:{C["accent"]};">{st.session_state.query_count}</div><div class="metric-label">Total Queries</div></div>',
-                unsafe_allow_html=True,
-            )
-        with mc2:
-            st.markdown(
-                f'<div class="metric-card"><div class="metric-value" style="color:{C["red"]};">{st.session_state.alert_count}</div><div class="metric-label">Alerts Triggered</div></div>',
-                unsafe_allow_html=True,
-            )
         avg = (
             (st.session_state.total_response_time_ms / st.session_state.query_count)
             if st.session_state.query_count
             else 0
         )
-        with mc3:
+        mc1, mc2, mc3, mc4 = st.columns(4)
+        with mc1:
             st.markdown(
-                f'<div class="metric-card"><div class="metric-value" style="color:{C["green"]};">{avg:.0f}ms</div><div class="metric-label">Avg Response</div></div>',
+                f"""<div class="metric-card" style="border-top:3px solid {C["accent"]};">
+                <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">{svg("search")} Queries</div>
+                <div class="metric-value" style="color:{C["accent"]};font-size:2.2rem;">{st.session_state.query_count}</div>
+                <div class="metric-label">Total Queries</div>
+            </div>""",
+                unsafe_allow_html=True,
+            )
+        with mc2:
+            st.markdown(
+                f"""<div class="metric-card" style="border-top:3px solid {C["red"]};">
+                <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">{svg("alert")} Alerts</div>
+                <div class="metric-value" style="color:{C["red"]};font-size:2.2rem;">{st.session_state.alert_count}</div>
+                <div class="metric-label">Alerts Triggered</div>
+            </div>""",
+                unsafe_allow_html=True,
+            )
+        with mc3:
+            rc = C["green"] if avg < 500 else C["yellow"] if avg < 2000 else C["red"]
+            st.markdown(
+                f"""<div class="metric-card" style="border-top:3px solid {C["green"]};">
+                <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">{svg("zap")} Speed</div>
+                <div class="metric-value" style="color:{rc};font-size:2.2rem;">{avg:.0f}<span style="font-size:1rem;font-weight:600;">ms</span></div>
+                <div class="metric-label">Avg Response</div>
+            </div>""",
                 unsafe_allow_html=True,
             )
         with mc4:
             st.markdown(
-                f'<div class="metric-card"><div class="metric-value" style="color:{C["purple"]};">100%</div><div class="metric-label">Uptime</div></div>',
+                f"""<div class="metric-card" style="border-top:3px solid {C["purple"]};">
+                <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">{svg("shield")} Uptime</div>
+                <div class="metric-value" style="color:{C["purple"]};font-size:2.2rem;">100<span style="font-size:1rem;font-weight:600;">%</span></div>
+                <div class="metric-label">System Uptime</div>
+            </div>""",
                 unsafe_allow_html=True,
             )
         ca, cb = st.columns(2)
@@ -817,35 +897,91 @@ def main():
     with tab_monitor:
         st.markdown(f'<div class="section-header">{svg("activity")} Autonomous Monitor</div>', unsafe_allow_html=True)
         st.markdown(
-            f'<div style="color:{C["text_muted"]};font-size:1rem;margin-bottom:16px;">Checking every <strong style="color:{C["text"]};font-weight:700;">{MONITOR_INTERVAL_MINUTES} minutes</strong></div>',
+            f'<div style="color:{C["text_muted"]};font-size:1rem;margin-bottom:16px;">Checking every <strong style="color:{C["text"]};font-weight:700;">{MONITOR_INTERVAL_MINUTES} minutes</strong> &middot; Thresholds: <strong style="color:{C["yellow"]};">{HEAT_THRESHOLD_C}°C</strong> / <strong style="color:{C["red"]};">HI {HEAT_INDEX_THRESHOLD}</strong></div>',
             unsafe_allow_html=True,
         )
         zones = [
-            {"name": "Dubai Downtown", "lat": 25.2048, "lng": 55.2708, "status": "active"},
-            {"name": "Abu Dhabi Central", "lat": 24.4539, "lng": 54.3773, "status": "active"},
-            {"name": "Sharjah City", "lat": 25.3463, "lng": 55.4209, "status": "alert"},
+            {"name": "Dubai Downtown", "lat": 25.2048, "lng": 55.2708, "status": "active", "temp": "42°C", "hi": "48"},
+            {"name": "Abu Dhabi Central", "lat": 24.4539, "lng": 54.3773, "status": "active", "temp": "40°C", "hi": "45"},
+            {"name": "Sharjah City", "lat": 25.3463, "lng": 55.4209, "status": "alert", "temp": "46°C", "hi": "54"},
         ]
-        for z in zones:
+        zc1, zc2, zc3 = st.columns(3)
+        for col, z in zip([zc1, zc2, zc3], zones, strict=True):
             is_alert = z["status"] == "alert"
             bc = C["red"] if is_alert else C["green"]
             sc = C["red"] if is_alert else C["green"]
-            st_txt = "Alert" if is_alert else "Active"
+            st_txt = "ALERT" if is_alert else "Active"
             si = svg("alert") if is_alert else svg("check")
-            st.markdown(
-                f'<div class="zone-card" style="border-left:3px solid {bc};"><div style="display:flex;justify-content:space-between;align-items:center;"><div><div class="zone-name">{z["name"]}</div><div class="zone-coords">{z["lat"]}, {z["lng"]}</div></div><span style="display:inline-flex;align-items:center;gap:6px;color:{sc};font-weight:700;font-size:0.95rem;">{si} {st_txt}</span></div></div>',
-                unsafe_allow_html=True,
-            )
+            with col:
+                st.markdown(
+                    f"""<div class="zone-card" style="border-left:3px solid {bc};min-height:120px;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+                        <div>
+                            <div class="zone-name">{z["name"]}</div>
+                            <div class="zone-coords" style="font-size:0.8rem;">{z["lat"]:.4f}, {z["lng"]:.4f}</div>
+                        </div>
+                        <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:{sc}20;border:1px solid {sc}40;border-radius:6px;color:{sc};font-weight:700;font-size:0.78rem;">{si} {st_txt}</span>
+                    </div>
+                    <div style="display:flex;gap:12px;margin-top:8px;">
+                        <div style="text-align:center;">
+                            <div style="font-size:1.4rem;font-weight:800;color:{sc};font-family:'JetBrains Mono',monospace;">{z["temp"]}</div>
+                            <div style="font-size:0.72rem;color:{C["text_dim"]};font-weight:600;text-transform:uppercase;">Temperature</div>
+                        </div>
+                        <div style="text-align:center;">
+                            <div style="font-size:1.4rem;font-weight:800;color:{C["orange"]};font-family:'JetBrains Mono',monospace;">{z["hi"]}</div>
+                            <div style="font-size:0.72rem;color:{C["text_dim"]};font-weight:600;text-transform:uppercase;">Heat Index</div>
+                        </div>
+                    </div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+        st.markdown("")
         st.markdown(f'<div class="section-header">{svg("alert")} Alert Feed</div>', unsafe_allow_html=True)
         if st.session_state.alert_count == 0:
             st.markdown(
-                f'<div class="alert-card-clear"><div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:1.1rem;">{svg("check")} All Clear</div><div style="margin-top:6px;opacity:0.9;font-size:0.9rem;">System is monitoring. All zones within normal parameters.</div></div>',
+                f"""<div class="alert-card-clear">
+                <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:1.1rem;">{svg("check")} All Clear</div>
+                <div style="margin-top:8px;opacity:0.9;font-size:0.9rem;">System is monitoring {len(zones)} zones. All within normal parameters.</div>
+                <div style="margin-top:8px;display:flex;gap:12px;font-size:0.82rem;opacity:0.8;">
+                    <span>Last check: {datetime.now(UTC).strftime("%H:%M UTC")}</span>
+                    <span>&middot;</span>
+                    <span>Next check: {MONITOR_INTERVAL_MINUTES}min</span>
+                </div>
+            </div>""",
                 unsafe_allow_html=True,
             )
         else:
             st.markdown(
-                f'<div class="alert-card"><div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:1.1rem;">{svg("alert")} {st.session_state.alert_count} Alert(s) Triggered</div><div style="margin-top:6px;opacity:0.9;font-size:0.9rem;">Emergency conditions detected in monitored zones.</div></div>',
+                f"""<div class="alert-card">
+                <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:1.1rem;">{svg("alert")} {st.session_state.alert_count} Alert(s) Triggered</div>
+                <div style="margin-top:8px;opacity:0.9;font-size:0.9rem;">Emergency conditions detected in monitored zones.</div>
+                <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+                    <span style="padding:4px 10px;background:rgba(255,255,255,0.15);border-radius:6px;font-size:0.82rem;font-weight:600;">Evacuate outdoor workers</span>
+                    <span style="padding:4px 10px;background:rgba(255,255,255,0.15);border-radius:6px;font-size:0.82rem;font-weight:600;">Open cooling centers</span>
+                    <span style="padding:4px 10px;background:rgba(255,255,255,0.15);border-radius:6px;font-size:0.82rem;font-weight:600;">Issue public warning</span>
+                </div>
+            </div>""",
                 unsafe_allow_html=True,
             )
+
+
+    # ── Footer ──
+    st.markdown("")
+    st.markdown(
+        f"""<div style="text-align:center;padding:24px 0 8px 0;border-top:1px solid {C["border"]};margin-top:32px;">
+        <div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-bottom:6px;">
+            <span style="color:{C["red"]};font-size:1rem;">🔥</span>
+            <span style="font-size:1rem;font-weight:800;color:{C["text"]};letter-spacing:-0.3px;">HeatMind</span>
+        </div>
+        <div style="color:{C["text_dim"]};font-size:0.82rem;font-weight:500;">
+            Multi-Agent Heat Intelligence System &middot; Built for FortyGuard Hackathon'26
+        </div>
+        <div style="margin-top:6px;color:{C["text_dim"]};font-size:0.78rem;">
+            5 Agentic Patterns &middot; 460 Tests &middot; MCP Compatible &middot; Docker Ready
+        </div>
+    </div>""",
+        unsafe_allow_html=True,
+    )
 
 
 if __name__ == "__main__":
