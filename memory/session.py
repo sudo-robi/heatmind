@@ -87,6 +87,9 @@ class _InMemoryCollection:
                 else:
                     doc.setdefault(field, []).append(op)
 
+    def drop(self):
+        self._docs.clear()
+
 
 def get_client():
     global _client
