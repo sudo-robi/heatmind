@@ -440,12 +440,13 @@ def handle_query(query):
     memory = st.session_state.memory
     sid = st.session_state.session_id
     routing = route_query(query)
-    loc = st.session_state.last_location
+    loc = parse_location_from_query(query)
+    st.session_state.last_location = loc
     params = {
         "latitude": loc["latitude"],
         "longitude": loc["longitude"],
         "date": datetime.now().strftime("%Y-%m-%d"),
-        "zone": loc["zone"],
+        "zone": loc.get("zone", "unknown"),
     }
     if not FORTYGUARD_API_KEY:
         return {
@@ -482,16 +483,64 @@ def handle_query(query):
 
 
 def parse_location_from_query(query):
-    locs = {
+    from agents.nlp_parser import extract_location
+
+    name, lat, lon = extract_location(query)
+    if lat is not None and lon is not None:
+        return {"latitude": lat, "longitude": lon, "zone": name.title()}
+
+    intl = {
         "dubai": {"latitude": 25.2048, "longitude": 55.2708, "zone": "Dubai"},
         "abu dhabi": {"latitude": 24.4539, "longitude": 54.3773, "zone": "Abu Dhabi"},
         "sharjah": {"latitude": 25.3463, "longitude": 55.4209, "zone": "Sharjah"},
-        "phoenix": {"latitude": 33.4484, "longitude": -112.0740, "zone": "Phoenix"},
         "doha": {"latitude": 25.2854, "longitude": 51.5310, "zone": "Doha"},
         "riyadh": {"latitude": 24.7136, "longitude": 46.6753, "zone": "Riyadh"},
+        "jeddah": {"latitude": 21.4858, "longitude": 39.1925, "zone": "Jeddah"},
+        "london": {"latitude": 51.5074, "longitude": -0.1278, "zone": "London"},
+        "paris": {"latitude": 48.8566, "longitude": 2.3522, "zone": "Paris"},
+        "tokyo": {"latitude": 35.6762, "longitude": 139.6503, "zone": "Tokyo"},
+        "beijing": {"latitude": 39.9042, "longitude": 116.4074, "zone": "Beijing"},
+        "mumbai": {"latitude": 19.0760, "longitude": 72.8777, "zone": "Mumbai"},
+        "sydney": {"latitude": -33.8688, "longitude": 151.2093, "zone": "Sydney"},
+        "cairo": {"latitude": 30.0444, "longitude": 31.2357, "zone": "Cairo"},
+        "singapore": {"latitude": 1.3521, "longitude": 103.8198, "zone": "Singapore"},
+        "hong kong": {"latitude": 22.3193, "longitude:": 114.1694, "zone": "Hong Kong"},
+        "bangkok": {"latitude": 13.7563, "longitude": 100.5018, "zone": "Bangkok"},
+        "istanbul": {"latitude": 41.0082, "longitude": 28.9784, "zone": "Istanbul"},
+        "moscow": {"latitude": 55.7558, "longitude": 37.6173, "zone": "Moscow"},
+        "toronto": {"latitude": 43.6532, "longitude": -79.3832, "zone": "Toronto"},
+        "mexico city": {"latitude": 19.4326, "longitude": -99.1332, "zone": "Mexico City"},
+        "sao paulo": {"latitude": -23.5505, "longitude": -46.6333, "zone": "Sao Paulo"},
+        "buenos aires": {"latitude": -34.6037, "longitude": -58.3816, "zone": "Buenos Aires"},
+        "lagos": {"latitude": 6.5244, "longitude": 3.3792, "zone": "Lagos"},
+        "nairobi": {"latitude": -1.2921, "longitude": 36.8219, "zone": "Nairobi"},
+        "cape town": {"latitude": -33.9249, "longitude": 18.4241, "zone": "Cape Town"},
+        "berlin": {"latitude": 52.5200, "longitude": 13.4050, "zone": "Berlin"},
+        "madrid": {"latitude": 40.4168, "longitude": -3.7038, "zone": "Madrid"},
+        "rome": {"latitude": 41.9028, "longitude": 12.4964, "zone": "Rome"},
+        "seoul": {"latitude": 37.5665, "longitude": 126.9780, "zone": "Seoul"},
+        "taipei": {"latitude": 25.0330, "longitude:": 121.5654, "zone": "Taipei"},
+        "manila": {"latitude": 14.5995, "longitude": 120.9842, "zone": "Manila"},
+        "jakarta": {"latitude": -6.2088, "longitude": 106.8456, "zone": "Jakarta"},
+        "karachi": {"latitude": 24.8607, "longitude": 67.0011, "zone": "Karachi"},
+        "delhi": {"latitude": 28.7041, "longitude": 77.1025, "zone": "Delhi"},
+        "bangalore": {"latitude": 12.9716, "longitude": 77.5946, "zone": "Bangalore"},
+        "los angeles": {"latitude": 34.0522, "longitude": -118.2437, "zone": "Los Angeles"},
+        "chicago": {"latitude": 41.8781, "longitude": -87.6298, "zone": "Chicago"},
+        "houston": {"latitude": 29.7604, "longitude": -95.3698, "zone": "Houston"},
+        "miami": {"latitude": 25.7617, "longitude": -80.1918, "zone": "Miami"},
+        "san francisco": {"latitude": 37.7749, "longitude": -122.4194, "zone": "San Francisco"},
+        "seattle": {"latitude": 47.6062, "longitude": -122.3321, "zone": "Seattle"},
+        "denver": {"latitude": 39.7392, "longitude": -104.9903, "zone": "Denver"},
+        "atlanta": {"latitude": 33.7490, "longitude": -84.3880, "zone": "Atlanta"},
+        "boston": {"latitude": 42.3601, "longitude": -71.0589, "zone": "Boston"},
+        "las vegas": {"latitude": 36.1699, "longitude": -115.1398, "zone": "Las Vegas"},
+        "washington dc": {"latitude": 38.9072, "longitude": -77.0369, "zone": "Washington DC"},
+        "new jersey": {"latitude": 40.0583, "longitude": -74.4057, "zone": "New Jersey"},
     }
-    for city, loc in locs.items():
-        if city in query.lower():
+    query_lower = query.lower()
+    for city, loc in intl.items():
+        if city in query_lower:
             return loc
     return st.session_state.last_location
 
@@ -774,7 +823,6 @@ def main():
             st.session_state.messages.append(user_msg)
             with st.chat_message("user"):
                 st.markdown(prompt)
-            st.session_state.last_location = parse_location_from_query(prompt)
             st.session_state.query_count += 1
             status_area = st.empty()
             escalate = (
