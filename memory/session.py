@@ -1,16 +1,91 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from pymongo import MongoClient
-
 from config import MONGO_DB, MONGO_URI, _validate_mongo_uri
 
-_client: MongoClient | None = None
+_client = None
+_sessions: dict = {}
+_events: list = []
+_decisions: list = []
 
 
-def get_client() -> MongoClient:
+class _InMemoryCollection:
+    """Minimal in-memory drop-in for a PyMongo collection."""
+
+    def __init__(self, name: str):
+        self._name = name
+        self._docs: list[dict] = []
+
+    def insert_one(self, doc: dict):
+        doc["_id"] = len(self._docs)
+        self._docs.append(doc)
+
+    def find_one(self, query: dict) -> dict | None:
+        for doc in self._docs:
+            if all(doc.get(k) == v for k, v in query.items()):
+                return doc
+        return None
+
+    def find(self, query: dict | None = None):
+        query = query or {}
+
+        class _Cursor:
+            def __init__(self, docs, q):
+                self._docs = [d for d in docs if all(d.get(k) == v for k, v in q.items())]
+                self._sort_field = None
+                self._sort_dir = -1
+                self._limit_n = None
+
+            def sort(self, field, direction=-1):
+                self._sort_field = field
+                self._sort_dir = direction
+                return self
+
+            def limit(self, n):
+                self._limit_n = n
+                return self
+
+            def __iter__(self):
+                docs = list(self._docs)
+                if self._sort_field:
+                    docs.sort(key=lambda d: d.get(self._sort_field, ""), reverse=(self._sort_dir == -1))
+                if self._limit_n is not None:
+                    docs = docs[: self._limit_n]
+                return iter(docs)
+
+        return _Cursor(self._docs, query)
+
+    def update_one(self, query: dict, update: dict):
+        doc = self.find_one(query)
+        if doc is None:
+            return
+        if "$set" in update:
+            for k, v in update["$set"].items():
+                doc[k] = v
+        if "$inc" in update:
+            for k, v in update["$inc"].items():
+                doc[k] = doc.get(k, 0) + v
+        if "$push" in update:
+            for field, op in update["$push"].items():
+                if isinstance(op, dict) and "$each" in op:
+                    items = op["$each"]
+                    if "$slice" in op:
+                        existing = doc.get(field, [])
+                        existing.extend(items)
+                        doc[field] = existing[op["$slice"] :]
+                    else:
+                        doc.setdefault(field, []).extend(items)
+                else:
+                    doc.setdefault(field, []).append(op)
+
+
+def get_client():
     global _client
+    if not MONGO_URI:
+        return None
     if _client is None:
+        from pymongo import MongoClient
+
         _client = MongoClient(MONGO_URI)
     return _client
 
@@ -28,17 +103,20 @@ class SessionMemory:
 
     def __init__(self):
         _validate_mongo_uri()
-        self.client = get_client()
-        self.db = self.client[MONGO_DB]
-        self.sessions = self.db["sessions"]
-        self.events = self.db["events"]
-        self.decisions = self.db["decisions"]
-
-        # Create indexes for query performance
-        self.sessions.create_index([("session_id", 1)])
-        self.events.create_index([("session_id", 1), ("event_type", 1)])
-        self.events.create_index([("timestamp", -1)])
-        self.decisions.create_index([("session_id", 1), ("timestamp", -1)])
+        self._mongo = get_client()
+        if self._mongo:
+            self.db = self._mongo[MONGO_DB]
+            self.sessions = self.db["sessions"]
+            self.events = self.db["events"]
+            self.decisions = self.db["decisions"]
+            self.sessions.create_index([("session_id", 1)])
+            self.events.create_index([("session_id", 1), ("event_type", 1)])
+            self.events.create_index([("timestamp", -1)])
+            self.decisions.create_index([("session_id", 1), ("timestamp", -1)])
+        else:
+            self.sessions = _InMemoryCollection("sessions")
+            self.events = _InMemoryCollection("events")
+            self.decisions = _InMemoryCollection("decisions")
 
     def create_session(
         self,

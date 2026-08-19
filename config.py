@@ -1,8 +1,11 @@
+import logging
 import os
 
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 FORTYGUARD_BASE_URL = "https://api.fortyguard.com/v1"
 
@@ -11,9 +14,9 @@ MONGO_DB = os.getenv("MONGO_DB", "heatmind")
 
 def _validate_mongo_uri():
     if not os.environ.get("MONGO_URI"):
-        raise ValueError(
-            "MONGO_URI is required. Set it in your .env file or environment. "
-            "Example: MONGO_URI=mongodb://user:password@host:27017/heatmind"
+        logger.warning(
+            "MONGO_URI not set — running without persistent storage. "
+            "Set MONGO_URI for production use."
         )
 
 
