@@ -105,7 +105,7 @@ check("ParsedQuery has time", pq.time == "15:00")
 check("ParsedQuery has endpoints", len(pq.endpoints_needed) > 0)
 check("ParsedQuery confidence > 0", pq.confidence > 0)
 
-check("US_CITIES dict not empty", len(__import__("agents.nlp_parser", fromlist=["US_CITIES"]).US_CITIES) > 10)
+check("ALL_CITIES dict not empty", len(__import__("utils.cities", fromlist=["ALL_CITIES"]).ALL_CITIES) > 10)
 
 
 # ── 3. Router ────────────────────────────────────────────────────────
