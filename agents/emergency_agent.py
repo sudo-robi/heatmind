@@ -1,8 +1,12 @@
+import time
 from datetime import UTC, datetime
 
 from api.fortyguard import FortyGuardClient
 from memory.session import SessionMemory
 from utils.alerts import send_alert
+from utils.escalation import EscalationManager
+from utils.metrics import get_metrics
+from utils.middleware import HistoryMiddleware
 from utils.validation import flatten_location_data, validate_coords
 
 
@@ -10,8 +14,12 @@ class EmergencyAgent:
     def __init__(self, memory=None):
         self.api = FortyGuardClient()
         self.memory = memory or SessionMemory()
+        self._middleware = HistoryMiddleware(self.memory)
+        self._escalation = EscalationManager()
+        self._metrics = get_metrics()
 
     def handle(self, query: str, session_id: str, params: dict) -> dict:
+        start = time.time()
         latitude = params.get("latitude")
         longitude = params.get("longitude")
         date = params.get("date")
@@ -26,7 +34,7 @@ class EmergencyAgent:
         except ValueError as e:
             return {"error": str(e)}
 
-        self.memory.add_message(session_id, "user", query)
+        self._middleware.enrich_context(session_id, query)
 
         env_id = self.api.create_env_params(
             latitude=latitude,
@@ -57,6 +65,11 @@ class EmergencyAgent:
             "recommendations": recommendations,
         }
         send_alert(alert_payload)
+        self._metrics.record_alert_sent()
+
+        escalation = self._escalation.evaluate(zone, heat_index, time.time())
+        if escalation.get("escalated"):
+            self._metrics.record_escalation(zone, escalation["level"])
 
         self.memory.log_event(
             session_id,
@@ -72,7 +85,10 @@ class EmergencyAgent:
         )
 
         response = self._format_response(severity, heat_index, recommendations)
-        self.memory.add_message(session_id, "assistant", response)
+        self._middleware.record_interaction(session_id, query, response)
+
+        latency = (time.time() - start) * 1000
+        self._metrics.record_agent_call("emergency", latency, len(query))
 
         return {
             "agent": "emergency",

@@ -1,5 +1,6 @@
 import logging
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 
@@ -13,6 +14,8 @@ from config import (
     MONITOR_INTERVAL_MINUTES,
 )
 from memory.session import SessionMemory
+from utils.anomaly import AnomalyDetector
+from utils.escalation import EscalationManager
 from utils.validation import flatten_location_data
 
 logger = logging.getLogger(__name__)
@@ -26,6 +29,8 @@ class MonitorLoop:
         self.zones = []
         self._shutdown_event = threading.Event()
         self._system_session_id = self.memory.create_session("monitor_system")
+        self._anomaly_detector = AnomalyDetector(window_size=10, z_score_threshold=2.0)
+        self._escalation_manager = EscalationManager()
 
     def add_zone(self, name: str, polygon_aoi: dict, latitude: float, longitude: float):
         self.zones.append(
@@ -66,6 +71,10 @@ class MonitorLoop:
             "env_params": env_result,
         }
 
+        heat_index = env_result.get("heat_index_celsius", 0)
+        if heat_index > 0:
+            self._anomaly_detector.add_reading(zone["name"], heat_index, reading["timestamp"])
+
         self.memory.log_event(self._system_session_id, "heat_reading", reading)
 
         return reading
@@ -73,6 +82,7 @@ class MonitorLoop:
     def analyze_reading(self, reading: dict) -> bool:
         env = reading.get("env_params", {})
         heat_index = env.get("heat_index_celsius", 0)
+        zone_name = reading.get("zone", "unknown")
 
         if heat_index >= HEAT_INDEX_THRESHOLD:
             return True
@@ -82,9 +92,43 @@ class MonitorLoop:
         temp_stats = stats.get("Temperature_stats", {})
         max_temp = temp_stats.get("Maximum", 0)
 
-        return max_temp >= HEAT_THRESHOLD_C
+        if max_temp >= HEAT_THRESHOLD_C:
+            return True
+
+        anomaly = self._anomaly_detector.detect_anomaly(zone_name, heat_index)
+        if anomaly["is_anomaly"]:
+            logger.warning(
+                "ANOMALY detected in %s: z_score=%.2f, deviation=%.1f",
+                zone_name,
+                anomaly["z_score"],
+                anomaly["deviation"],
+            )
+            return True
+
+        trend = self._anomaly_detector.detect_trend(zone_name)
+        if trend["direction"] == "rising" and heat_index >= HEAT_INDEX_THRESHOLD - 5:
+            logger.warning(
+                "RISING TREND in %s: slope=%.3f, current=%.1f",
+                zone_name,
+                trend["slope"],
+                heat_index,
+            )
+            return True
+
+        return False
 
     def trigger_emergency(self, zone: dict, reading: dict):
+        heat_index = reading.get("env_params", {}).get("heat_index_celsius", 35.0)
+        escalation = self._escalation_manager.evaluate(zone["name"], heat_index, time.time())
+
+        if escalation.get("escalated"):
+            logger.warning(
+                "ESCALATION [%s]: Level %s — actions: %s",
+                zone["name"],
+                escalation["level"],
+                escalation.get("actions", []),
+            )
+
         date = datetime.now(UTC).strftime("%Y-%m-%d")
         self.emergency_agent.handle(
             query=f"Emergency detected in {zone['name']}",
@@ -94,7 +138,8 @@ class MonitorLoop:
                 "longitude": zone["longitude"],
                 "date": date,
                 "zone": zone["name"],
-                "temperature": reading.get("env_params", {}).get("heat_index_celsius", 35.0),
+                "temperature": heat_index,
+                "escalation_level": escalation.get("level", "unknown"),
             },
         )
 

@@ -171,7 +171,15 @@ def simulate_session(memory: SessionMemory, session_num: int, dry_run: bool = Fa
         routing = route_query(query)
         agent_name = routing.agent
 
-        logger.info("  [%d/%d] Q: %s → %s (%s/%s)", i + 1, len(queries), query[:60], agent_name, routing.complexity.value, routing.urgency.value)
+        logger.info(
+            "  [%d/%d] Q: %s → %s (%s/%s)",
+            i + 1,
+            len(queries),
+            query[:60],
+            agent_name,
+            routing.complexity.value,
+            routing.urgency.value,
+        )
 
         if dry_run:
             agents_used[agent_name] = agents_used.get(agent_name, 0) + 1
@@ -208,13 +216,15 @@ def simulate_session(memory: SessionMemory, session_num: int, dry_run: bool = Fa
                 results["alerts"] += 1
 
             agents_used[agent_name] = agents_used.get(agent_name, 0) + 1
-            results["queries"].append({
-                "query": query,
-                "agent": agent_name,
-                "status": status,
-                "severity": severity,
-                "response_time": result.get("api_calls", []),
-            })
+            results["queries"].append(
+                {
+                    "query": query,
+                    "agent": agent_name,
+                    "status": status,
+                    "severity": severity,
+                    "response_time": result.get("api_calls", []),
+                }
+            )
             logger.info("    → %s (severity=%s)", status, severity or "n/a")
 
         except Exception as e:

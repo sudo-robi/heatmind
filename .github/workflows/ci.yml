@@ -181,6 +181,13 @@ jobs:
           python -c "from utils.validation import validate_coords, flatten_location_data"
           python -c "from utils.datasets import get_location_context"
           python -c "from monitor.alerts import MonitorAlertManager"
+          python -c "from utils.circuit_breaker import CircuitBreaker"
+          python -c "from utils.cache import ResponseCache"
+          python -c "from utils.sentiment import analyze_sentiment"
+          python -c "from utils.middleware import HistoryMiddleware"
+          python -c "from utils.anomaly import AnomalyDetector"
+          python -c "from utils.escalation import EscalationManager"
+          python -c "from utils.metrics import MetricsCollector"
       - name: Verify Streamlit app loads
         run: |
           timeout 5 python -c "import streamlit; print('Streamlit OK')" || true

@@ -1,7 +1,10 @@
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 from api.fortyguard import FortyGuardClient
 from memory.session import SessionMemory
+from utils.metrics import get_metrics
+from utils.middleware import HistoryMiddleware
 from utils.validation import flatten_location_data, validate_coords
 
 
@@ -9,8 +12,11 @@ class DeepAgent:
     def __init__(self, memory=None):
         self.api = FortyGuardClient()
         self.memory = memory or SessionMemory()
+        self._middleware = HistoryMiddleware(self.memory)
+        self._metrics = get_metrics()
 
     def handle(self, query: str, session_id: str, params: dict) -> dict:
+        start = time.time()
         latitude = params.get("latitude")
         longitude = params.get("longitude")
         date = params.get("date")
@@ -25,7 +31,7 @@ class DeepAgent:
         except ValueError as e:
             return {"error": str(e)}
 
-        self.memory.add_message(session_id, "user", query)
+        self._middleware.enrich_context(session_id, query)
 
         results = {}
         steps = []
@@ -89,7 +95,7 @@ class DeepAgent:
             results["heat_intelligence"] = self.api.wait_for_result(intel_id)
 
         response = self._format_response(results)
-        self.memory.add_message(session_id, "assistant", response)
+        self._middleware.record_interaction(session_id, query, response)
 
         self.memory.update_session_context(session_id, "last_query", query)
         self.memory.update_session_context(session_id, "last_location", params)
@@ -100,6 +106,9 @@ class DeepAgent:
             reasoning=f"Chained {len(steps)} endpoints: {', '.join(s[0] for s in steps)}",
             outcome="completed",
         )
+
+        latency = (time.time() - start) * 1000
+        self._metrics.record_agent_call("deep", latency, len(query))
 
         return {
             "agent": "deep",

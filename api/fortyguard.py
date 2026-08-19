@@ -5,6 +5,9 @@ from collections import deque
 import requests
 
 from config import FORTYGUARD_API_KEY, FORTYGUARD_BASE_URL
+from utils.cache import ResponseCache
+from utils.circuit_breaker import CircuitBreaker
+from utils.metrics import get_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +29,9 @@ class FortyGuardClient:
         self._request_timestamps: deque = deque(maxlen=50)
         self._rate_limit = 30
         self._rate_window = 60.0
+        self._circuit_breaker = CircuitBreaker(failure_threshold=5, recovery_timeout=60, name="fortyguard_api")
+        self._metrics = get_metrics()
+        self._cache = ResponseCache(default_ttl=300)
 
     def _check_rate_limit(self):
         now = time.time()
@@ -41,22 +47,62 @@ class FortyGuardClient:
                 time.sleep(sleep_time)
 
     def _post(self, endpoint: str, payload: dict) -> dict:
+        cached = self._cache.get(endpoint, payload)
+        if cached is not None:
+            self._metrics.record_cache_hit()
+            return cached
+
+        if not self._circuit_breaker.allow_request():
+            raise RuntimeError(f"Circuit breaker OPEN for {endpoint}")
         self._check_rate_limit()
         url = f"{self.base_url}/{endpoint}"
         self._call_log.append({"method": "POST", "url": url, "timestamp": time.time()})
         logger.info("POST %s", url)
-        response = self._session.post(url, json=payload, timeout=30)
-        response.raise_for_status()
-        return response.json()
+        start = time.time()
+        try:
+            response = self._session.post(url, json=payload, timeout=30)
+            response.raise_for_status()
+            latency = (time.time() - start) * 1000
+            self._metrics.record_api_call(endpoint, latency, True)
+            self._circuit_breaker.record_success()
+            result = response.json()
+            self._cache.set(endpoint, payload, result)
+            return result
+        except Exception:
+            latency = (time.time() - start) * 1000
+            self._metrics.record_api_call(endpoint, latency, False)
+            self._circuit_breaker.record_failure()
+            raise
 
-    def _get(self, endpoint: str) -> dict:
+    def _get(self, endpoint: str, use_cache: bool = True) -> dict:
+        if use_cache:
+            cached = self._cache.get(endpoint, {})
+            if cached is not None:
+                self._metrics.record_cache_hit()
+                return cached
+
+        if not self._circuit_breaker.allow_request():
+            raise RuntimeError(f"Circuit breaker OPEN for {endpoint}")
         self._check_rate_limit()
         url = f"{self.base_url}/{endpoint}"
         self._call_log.append({"method": "GET", "url": url, "timestamp": time.time()})
         logger.info("GET %s", url)
-        response = self._session.get(url, timeout=30)
-        response.raise_for_status()
-        return response.json()
+        start = time.time()
+        try:
+            response = self._session.get(url, timeout=30)
+            response.raise_for_status()
+            latency = (time.time() - start) * 1000
+            self._metrics.record_api_call(endpoint, latency, True)
+            self._circuit_breaker.record_success()
+            result = response.json()
+            if use_cache:
+                self._cache.set(endpoint, {}, result)
+            return result
+        except Exception:
+            latency = (time.time() - start) * 1000
+            self._metrics.record_api_call(endpoint, latency, False)
+            self._circuit_breaker.record_failure()
+            raise
 
     def get_call_log(self) -> list:
         log = list(self._call_log)
@@ -190,7 +236,7 @@ class FortyGuardClient:
 
     def get_status(self, activity_id: str) -> dict:
         try:
-            return self._get(f"status/{activity_id}")
+            return self._get(f"status/{activity_id}", use_cache=False)
         except Exception as e:
             logger.error("get_status failed: %s", type(e).__name__)
             return {"data": {"status": "error"}}

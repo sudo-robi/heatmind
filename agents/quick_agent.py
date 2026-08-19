@@ -1,5 +1,9 @@
+import time
+
 from api.fortyguard import FortyGuardClient
 from memory.session import SessionMemory
+from utils.metrics import get_metrics
+from utils.middleware import HistoryMiddleware
 from utils.validation import flatten_location_data, validate_coords
 
 
@@ -7,8 +11,11 @@ class QuickAgent:
     def __init__(self, memory=None):
         self.api = FortyGuardClient()
         self.memory = memory or SessionMemory()
+        self._middleware = HistoryMiddleware(self.memory)
+        self._metrics = get_metrics()
 
     def handle(self, query: str, session_id: str, params: dict) -> dict:
+        start = time.time()
         latitude = params.get("latitude")
         longitude = params.get("longitude")
         date = params.get("date")
@@ -22,7 +29,7 @@ class QuickAgent:
         except ValueError as e:
             return {"error": str(e)}
 
-        self.memory.add_message(session_id, "user", query)
+        self._middleware.enrich_context(session_id, query)
 
         activity_id = self.api.create_env_params(
             latitude=latitude,
@@ -40,7 +47,7 @@ class QuickAgent:
         result = flatten_location_data(result)
 
         response = self._format_response(result)
-        self.memory.add_message(session_id, "assistant", response)
+        self._middleware.record_interaction(session_id, query, response)
 
         self.memory.update_session_context(session_id, "last_query", query)
         self.memory.update_session_context(session_id, "last_location", params)
@@ -49,6 +56,9 @@ class QuickAgent:
             "heat_reading",
             {"zone": params.get("zone", "unknown"), "data": result},
         )
+
+        latency = (time.time() - start) * 1000
+        self._metrics.record_agent_call("quick", latency, len(query))
 
         return {
             "agent": "quick",

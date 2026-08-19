@@ -1,6 +1,10 @@
 import re
+import time
 from dataclasses import dataclass
 from enum import Enum
+
+from utils.metrics import get_metrics
+from utils.sentiment import Sentiment, analyze_sentiment
 
 _KEYWORD_PATTERNS: dict[str, re.Pattern] = {}
 
@@ -32,6 +36,9 @@ class RoutingDecision:
     reasoning: str
     recommended_model: str
     confidence: float
+    sentiment: Sentiment = Sentiment.NEUTRAL
+    sentiment_score: float = 0.0
+    escalation_trigger: bool = False
 
 
 COMPLEXITY_KEYWORDS = {
@@ -177,9 +184,15 @@ def get_model_recommendation(complexity: QueryComplexity, urgency: QueryUrgency)
 
 
 def route_query(query: str) -> RoutingDecision:
-    """Route a query to the appropriate agent based on complexity and urgency."""
+    """Route a query to the appropriate agent based on complexity, urgency, and sentiment."""
+    start = time.time()
     complexity = classify_complexity(query)
     urgency = classify_urgency(query)
+
+    sentiment_result = analyze_sentiment(query)
+    if sentiment_result.escalation_trigger and urgency.value not in ("high", "critical"):
+        urgency = QueryUrgency.HIGH
+
     confidence = calculate_confidence(complexity, urgency)
     model = get_model_recommendation(complexity, urgency)
 
@@ -190,7 +203,12 @@ def route_query(query: str) -> RoutingDecision:
     else:
         agent = "quick"
 
-    reasoning = f"Complexity: {complexity.value}, Urgency: {urgency.value}, Model: {model}"
+    reasoning = f"Complexity: {complexity.value}, Urgency: {urgency.value}, Sentiment: {sentiment_result.sentiment.value}, Model: {model}"
+
+    latency = (time.time() - start) * 1000
+    metrics = get_metrics()
+    metrics.record_routing(query, agent, confidence)
+    metrics.record_agent_call("router", latency, len(query))
 
     return RoutingDecision(
         complexity=complexity,
@@ -199,4 +217,7 @@ def route_query(query: str) -> RoutingDecision:
         reasoning=reasoning,
         recommended_model=model,
         confidence=confidence,
+        sentiment=sentiment_result.sentiment,
+        sentiment_score=sentiment_result.score,
+        escalation_trigger=sentiment_result.escalation_trigger,
     )

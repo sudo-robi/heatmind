@@ -2,39 +2,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
-US_CITIES = {
-    "new york": {"lat": 40.7128, "lon": -74.0060},
-    "nyc": {"lat": 40.7128, "lon": -74.0060},
-    "manhattan": {"lat": 40.7831, "lon": -73.9712},
-    "los angeles": {"lat": 34.0522, "lon": -118.2437},
-    "la": {"lat": 34.0522, "lon": -118.2437},
-    "chicago": {"lat": 41.8781, "lon": -87.6298},
-    "houston": {"lat": 29.7604, "lon": -95.3698},
-    "phoenix": {"lat": 33.4484, "lon": -112.0740},
-    "philadelphia": {"lat": 39.9526, "lon": -75.1652},
-    "san antonio": {"lat": 29.4241, "lon": -98.4936},
-    "san diego": {"lat": 32.7157, "lon": -117.1611},
-    "dallas": {"lat": 32.7767, "lon": -96.7970},
-    "austin": {"lat": 30.2672, "lon": -97.7431},
-    "miami": {"lat": 25.7617, "lon": -80.1918},
-    "seattle": {"lat": 47.6062, "lon": -122.3321},
-    "denver": {"lat": 39.7392, "lon": -104.9903},
-    "boston": {"lat": 42.3601, "lon": -71.0589},
-    "washington dc": {"lat": 38.9072, "lon": -77.0369},
-    "washington": {"lat": 38.9072, "lon": -77.0369},
-    "dc": {"lat": 38.9072, "lon": -77.0369},
-    "atlanta": {"lat": 33.7490, "lon": -84.3880},
-    "detroit": {"lat": 42.3314, "lon": -83.0458},
-    "minneapolis": {"lat": 44.9778, "lon": -93.2650},
-    "portland": {"lat": 45.5152, "lon": -122.6784},
-    "las vegas": {"lat": 36.1699, "lon": -115.1398},
-    "vegas": {"lat": 36.1699, "lon": -115.1398},
-    "nashville": {"lat": 36.1627, "lon": -86.7816},
-    "charlotte": {"lat": 35.2271, "lon": -80.8431},
-    "jacksonville": {"lat": 30.3322, "lon": -81.6557},
-    "san francisco": {"lat": 37.7749, "lon": -122.4194},
-    "sf": {"lat": 37.7749, "lon": -122.4194},
-}
+from utils.cities import ALL_CITIES, ALL_CITIES_SORTED
 
 INTENT_PATTERNS = {
     "current_conditions": [
@@ -104,14 +72,12 @@ INTENT_PATTERNS = {
 }
 
 
-US_CITIES_SORTED = sorted(US_CITIES.items(), key=lambda x: -len(x[0]))
-
 COMPILED_INTENT_PATTERNS = {
     intent: [re.compile(p, re.IGNORECASE) for p in patterns] for intent, patterns in INTENT_PATTERNS.items()
 }
 
 _SHORT_CITY_PATTERNS = {
-    city: re.compile(rf"\b{re.escape(city)}\b", re.IGNORECASE) for city, _ in US_CITIES.items() if len(city) <= 3
+    city: re.compile(rf"\b{re.escape(city)}\b", re.IGNORECASE) for city, _ in ALL_CITIES.items() if len(city) <= 3
 }
 
 
@@ -132,12 +98,7 @@ class ParsedQuery:
 
 def extract_location(query: str) -> tuple[str | None, float | None, float | None]:
     query_lower = query.lower()
-    for city, coords in US_CITIES_SORTED:
-        if len(city) <= 3:
-            if _SHORT_CITY_PATTERNS[city].search(query_lower):
-                return city, coords["lat"], coords["lon"]
-        elif city in query_lower:
-            return city, coords["lat"], coords["lon"]
+
     lat_match = re.search(r"latitude[:\s]+(-?\d+\.?\d*)", query_lower)
     lon_match = re.search(r"longitude[:\s]+(-?\d+\.?\d*)", query_lower)
     if lat_match and lon_match:
@@ -145,6 +106,12 @@ def extract_location(query: str) -> tuple[str | None, float | None, float | None
     coord_match = re.search(r"\((-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\)", query)
     if coord_match:
         return "custom", float(coord_match.group(1)), float(coord_match.group(2))
+
+    for city, coords in ALL_CITIES_SORTED:
+        pattern = _SHORT_CITY_PATTERNS.get(city) or re.compile(r"\b" + re.escape(city) + r"\b", re.IGNORECASE)
+        if pattern.search(query_lower):
+            return city, coords["lat"], coords["lon"]
+
     return None, None, None
 
 
