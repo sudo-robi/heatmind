@@ -5,7 +5,8 @@ from datetime import UTC, datetime
 import pytest
 
 # Set test env vars BEFORE any project imports (config.py reads at import time)
-os.environ.setdefault("MONGO_URI", "mongodb://localhost:27017")
+# Do NOT default MONGO_URI — unit tests should use in-memory fallback.
+# Memory/Integration test jobs set MONGO_URI via their MongoDB service container.
 os.environ.setdefault("MONGO_DB", "heatmind_test")
 os.environ.setdefault("FORTYGUARD_API_KEY", "")
 os.environ.setdefault("TEST_MODE", "true")
