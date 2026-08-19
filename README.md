@@ -19,13 +19,15 @@ A conversational, autonomous heat monitoring and emergency response platform
 that routes queries to specialized AI agents, remembers context across sessions,
 and triggers multi-channel alerts when conditions become dangerous.
 
-[![Python 3.10+](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+**[Live Demo →](https://heatmind.streamlit.app)** | [GitHub Repo →](https://github.com/sudo-robi/heatmind)
+
+[![Python 3.14](https://img.shields.io/badge/Python-3.14-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![MongoDB](https://img.shields.io/badge/MongoDB-7-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://mongodb.com)
 [![FortyGuard](https://img.shields.io/badge/FortyGuard-API-E63946?style=for-the-badge)](https://fortyguard.io)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.0-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-8B5CF6?style=for-the-badge)](https://modelcontextprotocol.io)
-[![Tests](https://img.shields.io/badge/Tests-220+-00C853?style=for-the-badge)](https://pytest.org)
+[![Tests](https://img.shields.io/badge/Tests-460+-00C853?style=for-the-badge)](https://pytest.org)
 [![Coverage](https://img.shields.io/badge/Coverage-90%25-FFD600?style=for-the-badge)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-00BFA5?style=for-the-badge)](LICENSE)
 
@@ -229,7 +231,7 @@ The monitor loop detects anomalies and triggers the Emergency Agent, which fans 
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.14
 - MongoDB (local or Atlas)
 - FortyGuard API key
 
@@ -427,14 +429,14 @@ HeatMind uses **all 6 FortyGuard Temperature API endpoints**:
 
 | Layer | Technology | Purpose |
 |---|---|---|
-| **Language** | Python 3.10+ | Core runtime |
+| **Language** | Python 3.14 | Core runtime |
 | **Database** | MongoDB 7 | Session memory, conversation history |
 | **API** | FortyGuard Temperature API | Real-time heat data, heatmaps, intelligence reports |
 | **CLI** | Rich | Terminal UI with colors and formatting |
 | **GUI** | Streamlit | Web interface with real-time dashboard |
 | **Alerts** | Slack / SMTP / Webhooks | Multi-channel emergency notifications |
 | **Integration** | MCP (Model Context Protocol) | Exposes tools to external AI agents |
-| **Testing** | pytest + coverage | 220+ tests, 90% code coverage |
+| **Testing** | pytest + coverage | 460 tests, 90%+ code coverage |
 | **CI/CD** | GitHub Actions | Automated testing and deployment |
 | **Deployment** | Docker + Docker Compose | Containerized full-stack deployment |
 
@@ -471,7 +473,7 @@ heatmind/
 │   ├── alerts.py              # Console + Slack + webhook + email alerts
 │   └── mcp_client.py          # MCP server + client integration
 │
-├── tests/                     # 220+ tests (90% coverage)
+├── tests/                     # 460 tests (90%+ coverage)
 │   ├── conftest.py
 │   ├── test_config.py
 │   ├── test_router.py
@@ -602,7 +604,7 @@ HEAT_INDEX_THRESHOLD=45
 
 2. **Complete Agentic Architecture** — Five distinct agentic patterns working together — not just one pattern, but a complete multi-agent system.
 
-3. **Production-Ready** — 220+ tests, 90% coverage, GitHub Actions CI/CD, Docker deployment, MongoDB Atlas support, multi-channel alerts.
+3. **Production-Ready** — 460 tests, 90%+ coverage, GitHub Actions CI/CD, Docker deployment, MongoDB Atlas support, multi-channel alerts.
 
 4. **Natural Language Interface** — Users ask questions in plain English. The system routes, reasons, and responds intelligently.
 

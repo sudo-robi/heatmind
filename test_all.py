@@ -26,9 +26,9 @@ def check(label, ok, detail=""):
 
 
 def section(title):
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"  {title}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
 
 # ── 1. Config ────────────────────────────────────────────────────────
@@ -157,7 +157,11 @@ except ValueError:
 
 data = {"locations": [{"parameters": {"heat_index_celsius": [35.0], "humidity": [60]}}]}
 flat = flatten_location_data(data)
-check("flatten_location_data flattens API format", flat["heat_index_celsius"] == 35.0 and flat["humidity"] == 60, f"got {flat}")
+check(
+    "flatten_location_data flattens API format",
+    flat["heat_index_celsius"] == 35.0 and flat["humidity"] == 60,
+    f"got {flat}",
+)
 
 data2 = {"heat_index_celsius": 35.0, "nested": {"key": "val"}}
 flat2 = flatten_location_data(data2)
@@ -254,27 +258,33 @@ from agents.chain_agent import ChainAgent
 qa = QuickAgent(memory=mem)
 check("QuickAgent instantiated", qa is not None)
 
-with patch.object(qa.api, "create_env_params", return_value="env-test"), \
-     patch.object(qa.api, "wait_for_result", return_value={"heat_index_celsius": 38}):
+with (
+    patch.object(qa.api, "create_env_params", return_value="env-test"),
+    patch.object(qa.api, "wait_for_result", return_value={"heat_index_celsius": 38}),
+):
     result = qa.handle("What's the temperature?", sid, {"latitude": 33.5, "longitude": -112, "date": "2026-08-19"})
     check("QuickAgent returns result", "agent" in result and result["agent"] == "quick")
 
 da = DeepAgent(memory=mem)
 check("DeepAgent instantiated", da is not None)
 
-with patch.object(da.api, "create_env_params", return_value="env-test"), \
-     patch.object(da.api, "wait_for_result", return_value={"heat_index_celsius": 38}), \
-     patch.object(da.api, "create_heat_intelligence", return_value="intel-test"), \
-     patch.object(da.api, "get_call_log", return_value=[]):
+with (
+    patch.object(da.api, "create_env_params", return_value="env-test"),
+    patch.object(da.api, "wait_for_result", return_value={"heat_index_celsius": 38}),
+    patch.object(da.api, "create_heat_intelligence", return_value="intel-test"),
+    patch.object(da.api, "get_call_log", return_value=[]),
+):
     result = da.handle("comprehensive analysis", sid, {"latitude": 33.5, "longitude": -112, "date": "2026-08-19"})
     check("DeepAgent returns result", "agent" in result and result["agent"] == "deep")
 
 ea = EmergencyAgent(memory=mem)
 check("EmergencyAgent instantiated", ea is not None)
 
-with patch.object(ea.api, "create_env_params", return_value="env-test"), \
-     patch.object(ea.api, "wait_for_result", return_value={"heat_index_celsius": 50}), \
-     patch.object(ea.api, "get_call_log", return_value=[]):
+with (
+    patch.object(ea.api, "create_env_params", return_value="env-test"),
+    patch.object(ea.api, "wait_for_result", return_value={"heat_index_celsius": 50}),
+    patch.object(ea.api, "get_call_log", return_value=[]),
+):
     result = ea.handle("emergency heat!", sid, {"latitude": 33.5, "longitude": -112, "date": "2026-08-19"})
     check("EmergencyAgent returns result", "agent" in result and result["agent"] == "emergency")
 
@@ -315,6 +325,7 @@ with patch("utils.alerts.requests.post") as mock_post:
 # ── 10. Streamlit app imports ────────────────────────────────────────
 section("10. STREAMLIT APP")
 import importlib
+
 spec = importlib.util.find_spec("streamlit_app")
 check("streamlit_app module found", spec is not None)
 
@@ -359,8 +370,8 @@ check("analyze_reading alert", ml.analyze_reading(reading_hot) is True)
 
 
 # ── SUMMARY ──────────────────────────────────────────────────────────
-print(f"\n{'='*60}")
-print(f"  RESULTS: {PASS} passed, {FAIL} failed, {PASS+FAIL} total")
-print(f"{'='*60}")
+print(f"\n{'=' * 60}")
+print(f"  RESULTS: {PASS} passed, {FAIL} failed, {PASS + FAIL} total")
+print(f"{'=' * 60}")
 if __name__ == "__main__":
     sys.exit(0 if FAIL == 0 else 1)

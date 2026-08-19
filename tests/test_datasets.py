@@ -53,7 +53,8 @@ class TestFindClosestTract:
 class TestCalculateRiskScore:
     def test_low_risk(self):
         ctx = LocationContext(
-            latitude=0, longitude=0,
+            latitude=0,
+            longitude=0,
             elderly_pct=0.10,
             median_income=80000,
             population_density=5000,
@@ -64,7 +65,8 @@ class TestCalculateRiskScore:
 
     def test_high_risk(self):
         ctx = LocationContext(
-            latitude=0, longitude=0,
+            latitude=0,
+            longitude=0,
             elderly_pct=0.20,
             median_income=30000,
             population_density=15000,
@@ -75,7 +77,8 @@ class TestCalculateRiskScore:
 
     def test_partial_risk(self):
         ctx = LocationContext(
-            latitude=0, longitude=0,
+            latitude=0,
+            longitude=0,
             elderly_pct=0.16,
             median_income=60000,
             population_density=5000,
@@ -86,7 +89,8 @@ class TestCalculateRiskScore:
 
     def test_score_capped_at_1(self):
         ctx = LocationContext(
-            latitude=0, longitude=0,
+            latitude=0,
+            longitude=0,
             elderly_pct=0.30,
             median_income=10000,
             population_density=50000,

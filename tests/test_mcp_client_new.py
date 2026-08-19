@@ -40,7 +40,9 @@ class TestHeatmindTools:
 
 class TestValidateMcpToolArgs:
     def test_valid_query_heat(self):
-        err = _validate_mcp_tool_args("query_heat_conditions", {"latitude": 33.5, "longitude": -112, "date": "2026-08-19"})
+        err = _validate_mcp_tool_args(
+            "query_heat_conditions", {"latitude": 33.5, "longitude": -112, "date": "2026-08-19"}
+        )
         assert err is None
 
     def test_valid_deep_analysis(self):
@@ -48,7 +50,9 @@ class TestValidateMcpToolArgs:
         assert err is None
 
     def test_valid_emergency(self):
-        err = _validate_mcp_tool_args("emergency_heat_check", {"latitude": 33.5, "longitude": -112, "date": "2026-08-19"})
+        err = _validate_mcp_tool_args(
+            "emergency_heat_check", {"latitude": 33.5, "longitude": -112, "date": "2026-08-19"}
+        )
         assert err is None
 
     def test_valid_route_query(self):
@@ -85,24 +89,34 @@ class TestValidateMcpToolArgs:
         assert "session_id" in err
 
     def test_invalid_latitude_too_high(self):
-        err = _validate_mcp_tool_args("query_heat_conditions", {"latitude": 91, "longitude": -112, "date": "2026-08-19"})
+        err = _validate_mcp_tool_args(
+            "query_heat_conditions", {"latitude": 91, "longitude": -112, "date": "2026-08-19"}
+        )
         assert err is not None
         assert "latitude" in err
 
     def test_invalid_latitude_negative(self):
-        err = _validate_mcp_tool_args("query_heat_conditions", {"latitude": -91, "longitude": -112, "date": "2026-08-19"})
+        err = _validate_mcp_tool_args(
+            "query_heat_conditions", {"latitude": -91, "longitude": -112, "date": "2026-08-19"}
+        )
         assert err is not None
 
     def test_invalid_longitude_too_high(self):
-        err = _validate_mcp_tool_args("query_heat_conditions", {"latitude": 33.5, "longitude": 181, "date": "2026-08-19"})
+        err = _validate_mcp_tool_args(
+            "query_heat_conditions", {"latitude": 33.5, "longitude": 181, "date": "2026-08-19"}
+        )
         assert err is not None
 
     def test_invalid_latitude_string(self):
-        err = _validate_mcp_tool_args("query_heat_conditions", {"latitude": "abc", "longitude": -112, "date": "2026-08-19"})
+        err = _validate_mcp_tool_args(
+            "query_heat_conditions", {"latitude": "abc", "longitude": -112, "date": "2026-08-19"}
+        )
         assert err is not None
 
     def test_null_latitude(self):
-        err = _validate_mcp_tool_args("query_heat_conditions", {"latitude": None, "longitude": -112, "date": "2026-08-19"})
+        err = _validate_mcp_tool_args(
+            "query_heat_conditions", {"latitude": None, "longitude": -112, "date": "2026-08-19"}
+        )
         assert err is not None
 
     def test_unknown_tool_passes(self):
@@ -114,16 +128,20 @@ class TestValidateMcpToolArgs:
         assert err is None
 
     def test_boundary_longitude(self):
-        err = _validate_mcp_tool_args("query_heat_conditions", {"latitude": -90, "longitude": -180, "date": "2026-08-19"})
+        err = _validate_mcp_tool_args(
+            "query_heat_conditions", {"latitude": -90, "longitude": -180, "date": "2026-08-19"}
+        )
         assert err is None
 
 
 class TestHeatMindMCPClient:
     @pytest.fixture
     def client(self):
-        with patch("utils.mcp_client.QuickAgent"), \
-             patch("utils.mcp_client.DeepAgent"), \
-             patch("utils.mcp_client.EmergencyAgent"):
+        with (
+            patch("utils.mcp_client.QuickAgent"),
+            patch("utils.mcp_client.DeepAgent"),
+            patch("utils.mcp_client.EmergencyAgent"),
+        ):
             return HeatMindMCPClient()
 
     def test_list_tools(self, client):
@@ -156,7 +174,9 @@ class TestHeatMindMCPClient:
 
     def test_query_no_api_key(self, client):
         with patch("utils.mcp_client.FORTYGUARD_API_KEY", ""):
-            result = client.call_tool("query_heat_conditions", {"latitude": 33.5, "longitude": -112, "date": "2026-08-19"})
+            result = client.call_tool(
+                "query_heat_conditions", {"latitude": 33.5, "longitude": -112, "date": "2026-08-19"}
+            )
             assert "error" in result
             assert "API key" in result["error"]
 
@@ -167,7 +187,9 @@ class TestHeatMindMCPClient:
 
     def test_emergency_no_api_key(self, client):
         with patch("utils.mcp_client.FORTYGUARD_API_KEY", ""):
-            result = client.call_tool("emergency_heat_check", {"latitude": 33.5, "longitude": -112, "date": "2026-08-19"})
+            result = client.call_tool(
+                "emergency_heat_check", {"latitude": 33.5, "longitude": -112, "date": "2026-08-19"}
+            )
             assert "error" in result
 
     def test_high_level_query(self, client):

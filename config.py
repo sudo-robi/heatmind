@@ -14,10 +14,7 @@ MONGO_DB = os.getenv("MONGO_DB", "heatmind")
 
 def _validate_mongo_uri():
     if not os.environ.get("MONGO_URI"):
-        logger.warning(
-            "MONGO_URI not set — running without persistent storage. "
-            "Set MONGO_URI for production use."
-        )
+        logger.warning("MONGO_URI not set — running without persistent storage. Set MONGO_URI for production use.")
 
 
 def _validate_api_key():
