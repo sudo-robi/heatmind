@@ -903,7 +903,7 @@ def main():
         bc1, bc2 = st.columns(2)
         with bc1:
             if st.button("New Session", use_container_width=True):
-                memory = SessionMemory()
+                memory = SessionMemory()  # noqa: F823
                 st.session_state.session_id = memory.create_session("streamlit_user")
                 st.session_state.memory = memory
                 st.session_state.messages = []

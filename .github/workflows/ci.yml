@@ -194,6 +194,19 @@ jobs:
           python -c "from automation.rules import RuleEngine"
           python -c "from automation.scheduler import AutomationScheduler"
           python -c "from memory.learning import extract_pattern"
+
+          python -c "from utils.verification import verify_answer"
+          python -c "from utils.persona_debate import run_debate"
+          python -c "from utils.handoff import create_handoff"
+          python -c "from utils.failure_modes import classify, recover"
+          python -c "from utils.rca import analyze_failure"
+          python -c "from utils.token_budget import BudgetManager"
+          python -c "from utils.compression import compress_for_synthesis"
+          python -c "from utils.shadow_testing import ShadowTester"
+          python -c "from utils.checkpoint import CheckpointManager"
+          python -c "from utils.session_persist import init_session_state"
+          python -c "from utils.codemap import scan_modules"
+          python -c "from utils.defensive_hooks import check_tool_safety"
       - name: Verify Streamlit app loads
         run: |
           timeout 5 python -c "import streamlit; print('Streamlit OK')" || true
