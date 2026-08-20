@@ -250,7 +250,7 @@ class FortyGuardClient:
 
     def get_credits(self) -> dict:
         try:
-            return self._get("system/fetch-api-key-usage")
+            return self._post("system/fetch-api-key-usage", {"api_key": self.api_key})
         except Exception as e:
             logger.error("get_credits failed: %s", type(e).__name__)
             return {"error": type(e).__name__}

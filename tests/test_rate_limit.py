@@ -141,7 +141,7 @@ class TestFortyGuardClient:
         assert result == "heat-456"
 
     def test_get_credits_returns_type_on_error(self, client):
-        client._session.get.return_value = MagicMock(raise_for_status=MagicMock(side_effect=Exception("timeout")))
+        client._session.post.return_value = MagicMock(raise_for_status=MagicMock(side_effect=Exception("timeout")))
         result = client.get_credits()
         assert "error" in result
         assert result["error"] == "Exception"
