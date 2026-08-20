@@ -3,7 +3,7 @@ import logging
 from api.fortyguard import FortyGuardClient
 from memory.session import SessionMemory
 from utils.demo import demo_env_params, demo_heat_intelligence, demo_heatmap
-from utils.validation import flatten_location_data, validate_coords
+from utils.validation import flatten_location_data, format_env_conditions, format_heatmap_stats, validate_coords
 
 logger = logging.getLogger(__name__)
 
@@ -195,30 +195,10 @@ class ChainAgent:
         lines.append("")
 
         if "env_params" in results:
-            env = results["env_params"]
-            lines.append("**Environmental Conditions:**")
-            for key in [
-                "heat_index_celsius",
-                "apparent_temperature_celsius",
-                "relative_humidity_percent",
-                "air_quality:idx",
-            ]:
-                if key in env and env[key] is not None:
-                    label = key.replace("_", " ").replace(":", " ").title()
-                    lines.append(f"  - {label}: {env[key]}")
-            lines.append("")
+            lines.extend(format_env_conditions(results["env_params"]))
 
         if "heatmap" in results:
-            hm = results["heatmap"]
-            if "stats_data" in hm:
-                stats = hm["stats_data"]
-                lines.append("**Heatmap Statistics:**")
-                if "Temperature_stats" in stats:
-                    ts = stats["Temperature_stats"]
-                    lines.append(f"  - Min: {ts.get('Minimum', 'N/A')}°C")
-                    lines.append(f"  - Max: {ts.get('Maximum', 'N/A')}°C")
-                    lines.append(f"  - Mean: {ts.get('Mean', 'N/A')}°C")
-                lines.append("")
+            lines.extend(format_heatmap_stats({"heatmap": results["heatmap"]}))
 
         if "heat_intelligence" in results:
             lines.append("**Heat Intelligence Report:**")

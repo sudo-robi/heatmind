@@ -5,7 +5,7 @@ from api.fortyguard import FortyGuardClient
 from memory.session import SessionMemory
 from utils.metrics import get_metrics
 from utils.middleware import HistoryMiddleware
-from utils.validation import flatten_location_data, validate_coords
+from utils.validation import flatten_location_data, format_env_conditions, format_heatmap_stats, validate_coords
 
 
 class DeepAgent:
@@ -119,32 +119,9 @@ class DeepAgent:
 
     def _format_response(self, data: dict) -> str:
         lines = ["**Comprehensive Heat Risk Assessment:**\n"]
-
         if "env_params" in data:
-            env = data["env_params"]
-            lines.append("**Environmental Conditions:**")
-            for key in [
-                "heat_index_celsius",
-                "apparent_temperature_celsius",
-                "relative_humidity_percent",
-                "air_quality:idx",
-            ]:
-                if key in env and env[key] is not None:
-                    label = key.replace("_", " ").replace(":", " ").title()
-                    lines.append(f"  - {label}: {env[key]}")
-            lines.append("")
-
-        if "heatmap" in data:
-            hm = data["heatmap"]
-            if "stats_data" in hm:
-                stats = hm["stats_data"]
-                lines.append("**Heatmap Statistics:**")
-                if "Temperature_stats" in stats:
-                    ts = stats["Temperature_stats"]
-                    lines.append(f"  - Min: {ts.get('Minimum', 'N/A')}°C")
-                    lines.append(f"  - Max: {ts.get('Maximum', 'N/A')}°C")
-                    lines.append(f"  - Mean: {ts.get('Mean', 'N/A')}°C")
-                lines.append("")
+            lines.extend(format_env_conditions(data["env_params"]))
+        lines.extend(format_heatmap_stats(data))
 
         if "heat_intelligence" in data:
             lines.append("**Heat Intelligence Report:**")

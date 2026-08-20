@@ -1,5 +1,7 @@
 """Tests for MCP Client — tool listing, validation, dispatch, auth."""
 
+import json
+import os
 from unittest.mock import patch
 
 import pytest
@@ -167,6 +169,62 @@ class TestHeatMindMCPClient:
         result = client.call_tool("get_session_history", {"session_id": "empty-session"})
         assert result["count"] == 0
 
+    def test_call_tool_deep_heat_analysis_dispatches(self, client):
+        with patch("utils.mcp_client.FORTYGUARD_API_KEY", "test-key"):
+            client.deep_agent.handle.return_value = {"agent": "deep", "response": "ok"}
+            result = client.call_tool(
+                "deep_heat_analysis",
+                {"latitude": 25.0, "longitude": 55.0, "date": "2026-08-15"},
+            )
+            assert result["tool"] == "deep_heat_analysis"
+            client.deep_agent.handle.assert_called_once()
+
+    def test_deep_heat_analysis_no_api_key(self, client):
+        with patch("utils.mcp_client.FORTYGUARD_API_KEY", ""):
+            result = client.call_tool(
+                "deep_heat_analysis",
+                {"latitude": 25.0, "longitude": 55.0, "date": "2026-08-15"},
+            )
+            assert "error" in result
+            assert "API key" in result["error"]
+
+    def test_call_tool_emergency_heat_check_dispatches(self, client):
+        with patch("utils.mcp_client.FORTYGUARD_API_KEY", "test-key"):
+            client.emergency_agent.handle.return_value = {"agent": "emergency", "response": "ok"}
+            result = client.call_tool(
+                "emergency_heat_check",
+                {"latitude": 25.0, "longitude": 55.0, "date": "2026-08-15"},
+            )
+            assert result["tool"] == "emergency_heat_check"
+            client.emergency_agent.handle.assert_called_once()
+
+    def test_emergency_heat_check_no_api_key(self, client):
+        with patch("utils.mcp_client.FORTYGUARD_API_KEY", ""):
+            result = client.call_tool(
+                "emergency_heat_check",
+                {"latitude": 25.0, "longitude": 55.0, "date": "2026-08-15"},
+            )
+            assert "error" in result
+            assert "API key" in result["error"]
+
+    def test_high_level_query(self, client):
+        client.quick_agent.handle.return_value = {"agent": "quick", "response": "ok"}
+        result = client.query("What's the temperature in Dubai?")
+        assert "routing" in result
+        assert "result" in result
+
+    def test_high_level_query_deep_agent(self, client):
+        client.deep_agent.handle.return_value = {"agent": "deep", "response": "ok"}
+        result = client.query("Give me a full heat risk analysis for Dubai with heatmap")
+        assert "routing" in result
+        assert "result" in result
+
+    def test_high_level_query_emergency_agent(self, client):
+        client.emergency_agent.handle.return_value = {"agent": "emergency", "response": "ok"}
+        result = client.query("EMERGENCY: extreme heat alert for outdoor workers in Dubai right now!")
+        assert "routing" in result
+        assert "result" in result
+
 
 class TestMCPModule:
     def test_max_request_body_size(self):
@@ -178,3 +236,169 @@ class TestMCPModule:
         from utils.mcp_client import HEATMIND_TOOLS
 
         assert len(HEATMIND_TOOLS) == 5
+
+
+class TestServeMCP:
+    def _run_serve(self, lines, env_overrides=None):
+        from utils.mcp_client import serve_mcp
+
+        env = env_overrides or {}
+        with patch("utils.mcp_client.sys") as mock_sys:
+            mock_sys.stdin = lines
+            mock_sys.stderr = mock_sys.stderr
+            with patch("builtins.print") as mock_print:
+                with patch("utils.mcp_client.HeatMindMCPClient") as MockClient:
+                    mock_client = MockClient.return_value
+                    mock_client.list_tools.return_value = [
+                        {"name": "t1", "description": "d", "inputSchema": {"type": "object"}}
+                    ]
+                    mock_client.call_tool.return_value = {"tool": "t1", "result": "ok"}
+                    with patch.dict("os.environ", env, clear=False):
+                        serve_mcp()
+                    return mock_print
+
+    def test_serve_mcp_initialize(self):
+        request = json.dumps({"method": "initialize", "id": 1, "params": {}}) + "\n"
+        mock_print = self._run_serve([request])
+        output = mock_print.call_args_list[-1][0][0]
+        resp = json.loads(output)
+        assert resp["id"] == 1
+        assert "result" in resp
+        assert resp["result"]["protocolVersion"] == "2024-11-05"
+
+    def test_serve_mcp_tools_list(self):
+        request = json.dumps({"method": "tools/list", "id": 2, "params": {}}) + "\n"
+        mock_print = self._run_serve([request])
+        output = mock_print.call_args_list[-1][0][0]
+        resp = json.loads(output)
+        assert resp["id"] == 2
+        assert "tools" in resp["result"]
+
+    def test_serve_mcp_unknown_method(self):
+        request = json.dumps({"method": "unknown/method", "id": 3, "params": {}}) + "\n"
+        mock_print = self._run_serve([request])
+        output = mock_print.call_args_list[-1][0][0]
+        resp = json.loads(output)
+        assert resp["id"] == 3
+        assert "error" in resp
+        assert resp["error"]["code"] == -32601
+
+    def test_serve_mcp_json_decode_error(self):
+        mock_print = self._run_serve(["not json\n"])
+        json_calls = [c for c in mock_print.call_args_list if c[0] and c[0][0].startswith("{")]
+        assert len(json_calls) == 0
+
+    def test_serve_mcp_auth_failure(self):
+        request = json.dumps({"method": "initialize", "id": 4, "params": {"token": "wrong"}}) + "\n"
+        mock_print = self._run_serve([request], env_overrides={"MCP_SECRET": "real-secret"})
+        json_calls = [c for c in mock_print.call_args_list if c[0] and c[0][0].startswith("{")]
+        output = json_calls[-1][0][0]
+        resp = json.loads(output)
+        assert "error" in resp
+        assert "Unauthorized" in resp["error"]["message"]
+
+    def test_serve_mcp_auth_success(self):
+        request = json.dumps({"method": "initialize", "id": 5, "params": {"token": "real-secret"}}) + "\n"
+        mock_print = self._run_serve([request], env_overrides={"MCP_SECRET": "real-secret"})
+        json_calls = [c for c in mock_print.call_args_list if c[0] and c[0][0].startswith("{")]
+        output = json_calls[-1][0][0]
+        resp = json.loads(output)
+        assert "result" in resp
+
+    def test_serve_mcp_request_too_large(self):
+        huge = "x" * (1024 * 1024 + 1)
+        mock_print = self._run_serve([huge + "\n"])
+        json_calls = [c for c in mock_print.call_args_list if c[0] and c[0][0].startswith("{")]
+        assert len(json_calls) == 0
+
+    def test_serve_mcp_tools_call(self):
+        request = (
+            json.dumps(
+                {
+                    "method": "tools/call",
+                    "id": 6,
+                    "params": {"name": "route_query", "arguments": {"query": "how hot"}},
+                }
+            )
+            + "\n"
+        )
+        mock_print = self._run_serve([request])
+        json_calls = [c for c in mock_print.call_args_list if c[0] and c[0][0].startswith("{")]
+        output = json_calls[-1][0][0]
+        resp = json.loads(output)
+        assert resp["id"] == 6
+        assert "result" in resp
+        assert "content" in resp["result"]
+
+    def test_serve_mcp_exception_handling(self):
+        from utils.mcp_client import serve_mcp
+
+        request = json.dumps({"method": "tools/call", "id": 7, "params": {"name": "bad", "arguments": {}}}) + "\n"
+        with patch("utils.mcp_client.sys") as mock_sys:
+            mock_sys.stdin = [request]
+            with patch("builtins.print") as mock_print:
+                with patch("utils.mcp_client.HeatMindMCPClient") as MockClient:
+                    mock_instance = MockClient.return_value
+                    mock_instance.call_tool.side_effect = RuntimeError("boom")
+                    serve_mcp()
+                    json_calls = [c for c in mock_print.call_args_list if c[0] and c[0][0].startswith("{")]
+                    output = json_calls[-1][0][0]
+                    resp = json.loads(output)
+                    assert resp["error"]["code"] == -32603
+
+    def test_serve_mcp_no_mcp_secret_warning(self):
+        from utils.mcp_client import serve_mcp
+
+        request = json.dumps({"method": "initialize", "id": 8, "params": {}}) + "\n"
+        with patch("utils.mcp_client.sys") as mock_sys:
+            mock_sys.stdin = [request]
+            mock_sys.stderr = mock_sys.stderr
+            with patch("builtins.print") as mock_print:
+                with patch("utils.mcp_client.HeatMindMCPClient"):
+                    saved = os.environ.pop("MCP_SECRET", None)
+                    try:
+                        serve_mcp()
+                    finally:
+                        if saved is not None:
+                            os.environ["MCP_SECRET"] = saved
+                    all_output = str(mock_print.call_args_list)
+                    assert "MCP_SECRET" in all_output
+
+    def test_serve_mcp_rate_limit(self):
+        requests = []
+        for i in range(62):
+            requests.append(json.dumps({"method": "initialize", "id": i, "params": {}}) + "\n")
+        mock_print = self._run_serve(requests)
+        all_output = str(mock_print.call_args_list)
+        assert "Rate limit" in all_output
+
+    def test_serve_mcp_no_mcp_secret_no_auth(self):
+        request = json.dumps({"method": "initialize", "id": 9, "params": {}}) + "\n"
+        from utils.mcp_client import serve_mcp
+
+        with patch("utils.mcp_client.sys") as mock_sys:
+            mock_sys.stdin = [request]
+            with patch("builtins.print") as mock_print:
+                with patch("utils.mcp_client.HeatMindMCPClient"):
+                    os.environ.pop("MCP_SECRET", None)
+                    serve_mcp()
+                    json_calls = [c for c in mock_print.call_args_list if c[0] and c[0][0].startswith("{")]
+                    output = json_calls[-1][0][0]
+                    resp = json.loads(output)
+                    assert "result" in resp
+
+    def test_serve_mcp_auth_token_in_top_level(self):
+        request = json.dumps({"method": "initialize", "id": 10, "token": "real-secret", "params": {}}) + "\n"
+        mock_print = self._run_serve([request], env_overrides={"MCP_SECRET": "real-secret"})
+        json_calls = [c for c in mock_print.call_args_list if c[0] and c[0][0].startswith("{")]
+        output = json_calls[-1][0][0]
+        resp = json.loads(output)
+        assert "result" in resp
+
+    def test_serve_mcp_auth_token_in_params(self):
+        request = json.dumps({"method": "initialize", "id": 11, "params": {"token": "real-secret"}}) + "\n"
+        mock_print = self._run_serve([request], env_overrides={"MCP_SECRET": "real-secret"})
+        json_calls = [c for c in mock_print.call_args_list if c[0] and c[0][0].startswith("{")]
+        output = json_calls[-1][0][0]
+        resp = json.loads(output)
+        assert "result" in resp

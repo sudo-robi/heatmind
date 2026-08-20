@@ -44,21 +44,6 @@ def extract_geojson(heatmap_result) -> dict | None:
     return None
 
 
-def _extract_feature(geojson, temp_key: str) -> dict:
-    """Build a single point feature with heat data from a result dict."""
-    stats = (geojson.get("stats_data") or {}).get("Temperature_stats") or {}
-    return {
-        "type": "Feature",
-        "properties": {
-            "temp": stats.get("Mean") or stats.get("Maximum") or 0,
-            "minimum": stats.get("Minimum"),
-            "maximum": stats.get("Maximum"),
-            "mean": stats.get("Mean"),
-        },
-        "geometry": {"type": "Point", "coordinates": [geojson.get("longitude", 0), geojson.get("latitude", 0)]},
-    }
-
-
 def render_heat_map(lat: float, lng: float, zone: str, heatmap_result=None, heat_index: float | None = None):
     """Render an interactive heat map centered on a location.
 

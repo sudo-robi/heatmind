@@ -1,4 +1,5 @@
 import logging
+import re
 import time
 from collections import deque
 
@@ -10,6 +11,9 @@ from utils.circuit_breaker import CircuitBreaker
 from utils.metrics import get_metrics
 
 logger = logging.getLogger(__name__)
+
+# Activity IDs are expected to be alphanumeric/hex — reject anything else
+_ACTIVITY_ID_RE = re.compile(r"^[A-Za-z0-9_\-]{1,128}$")
 
 
 class FortyGuardClient:
@@ -235,6 +239,9 @@ class FortyGuardClient:
             return None
 
     def get_status(self, activity_id: str) -> dict:
+        if not _ACTIVITY_ID_RE.match(activity_id):
+            logger.warning("get_status rejected invalid activity_id format")
+            return {"data": {"status": "error"}}
         try:
             return self._get(f"status/{activity_id}", use_cache=False)
         except Exception as e:

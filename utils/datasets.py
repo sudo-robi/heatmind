@@ -1,7 +1,4 @@
-import logging
 from dataclasses import dataclass
-
-logger = logging.getLogger(__name__)
 
 CDC_HEAT_VULNERABILITY = {
     "high": {

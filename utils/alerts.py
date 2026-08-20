@@ -113,7 +113,9 @@ def send_email_alert(payload: dict):
     timestamp = html_escape(payload.get("timestamp", datetime.now(UTC).isoformat()))
     recommendations = payload.get("recommendations", [])
 
+    # Sanitize subject to prevent email header injection (no newlines allowed)
     subject = f"HeatMind Alert — {severity} — {zone}"
+    subject = subject.replace("\r", "").replace("\n", "")
 
     rec_html = "\n".join(f"<li style='padding: 4px;'>{html_escape(rec)}</li>" for rec in recommendations)
 

@@ -4,7 +4,7 @@ from api.fortyguard import FortyGuardClient
 from memory.session import SessionMemory
 from utils.metrics import get_metrics
 from utils.middleware import HistoryMiddleware
-from utils.validation import flatten_location_data, validate_coords
+from utils.validation import flatten_location_data, format_env_conditions, validate_coords
 
 
 class QuickAgent:
@@ -69,13 +69,5 @@ class QuickAgent:
 
     def _format_response(self, data: dict) -> str:
         lines = ["**Current Heat Conditions:**"]
-        for key in [
-            "heat_index_celsius",
-            "apparent_temperature_celsius",
-            "relative_humidity_percent",
-            "air_quality:idx",
-        ]:
-            if key in data and data[key] is not None:
-                label = key.replace("_", " ").replace(":", " ").title()
-                lines.append(f"- {label}: {data[key]}")
+        lines.extend(format_env_conditions(data))
         return "\n".join(lines)

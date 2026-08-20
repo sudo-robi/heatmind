@@ -1,7 +1,10 @@
-# Environment
+# Environment — ALL env files (never commit secrets)
 .env
 .env.*
 !.env.example
+
+# Streamlit secrets — NEVER commit
+.streamlit/secrets.toml
 
 # Python
 __pycache__/
