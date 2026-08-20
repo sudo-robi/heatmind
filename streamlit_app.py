@@ -1425,6 +1425,109 @@ def main():
                     unsafe_allow_html=True,
                 )
 
+        # ── Automation Rules ──
+        st.markdown("")
+        st.markdown(f'<div class="section-header">{svg("zap")} Automation Rules</div>', unsafe_allow_html=True)
+        try:
+            from automation.rules import RuleEngine
+            from automation.scheduler import AutomationScheduler
+            from config import AUTOMATION_ENABLED
+
+            if not AUTOMATION_ENABLED:
+                st.markdown(
+                    f'<div style="color:{C["text_dim"]};font-size:0.9rem;padding:8px 0;">Automation disabled. Set <code>AUTOMATION_ENABLED=1</code> to enable.</div>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                if "rule_engine" not in st.session_state:
+                    st.session_state.rule_engine = RuleEngine()
+                if "scheduler" not in st.session_state:
+                    st.session_state.scheduler = AutomationScheduler(st.session_state.rule_engine)
+
+                stats = st.session_state.scheduler.get_stats()
+                rules = st.session_state.rule_engine.get_rules()
+                events = st.session_state.scheduler.get_event_log(limit=5)
+
+                ac1, ac2, ac3 = st.columns(3)
+                with ac1:
+                    st.markdown(
+                        f"""<div class="metric-card" style="border-top:3px solid {C["green"]};">
+                        <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">{svg("zap")} Rules</div>
+                        <div class="metric-value" style="color:{C["green"]};font-size:2.2rem;">{stats["enabled_rules"]}/{stats["total_rules"]}</div>
+                        <div class="metric-label">Active / Total</div>
+                    </div>""",
+                        unsafe_allow_html=True,
+                    )
+                with ac2:
+                    st.markdown(
+                        f"""<div class="metric-card" style="border-top:3px solid {C["cyan"]};">
+                        <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">{svg("activity")} Triggers</div>
+                        <div class="metric-value" style="color:{C["cyan"]};font-size:2.2rem;">{stats["total_triggers"]}</div>
+                        <div class="metric-label">Total Fired</div>
+                    </div>""",
+                        unsafe_allow_html=True,
+                    )
+                with ac3:
+                    st.markdown(
+                        f"""<div class="metric-card" style="border-top:3px solid {C["purple"]};">
+                        <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">{svg("history")} Events</div>
+                        <div class="metric-value" style="color:{C["purple"]};font-size:2.2rem;">{stats["recent_events"]}</div>
+                        <div class="metric-label">Recent</div>
+                    </div>""",
+                        unsafe_allow_html=True,
+                    )
+
+                for r in rules:
+                    action_color = {
+                        "trigger_emergency": C["red"],
+                        "send_warning": C["yellow"],
+                        "deep_analysis": C["purple"],
+                        "generate_report": C["cyan"],
+                    }.get(r["action"], C["text_muted"])
+
+                    col_rule, col_toggle = st.columns([5, 1])
+                    with col_rule:
+                        st.markdown(
+                            f"""<div class="zone-card" style="border-left:3px solid {action_color};margin-bottom:4px;padding:8px 12px;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <div>
+                                    <span style="font-weight:700;color:{C["text"]};font-size:0.88rem;">{r["name"]}</span>
+                                    <span style="color:{C["text_dim"]};font-size:0.78rem;"> · {r["action"]}</span>
+                                </div>
+                                <div style="display:flex;gap:8px;align-items:center;">
+                                    <span style="font-size:0.78rem;color:{action_color};font-weight:600;">×{r["trigger_count"]}</span>
+                                </div>
+                            </div>
+                            <div style="font-size:0.78rem;color:{C["text_muted"]};margin-top:2px;">{r["condition"]}</div>
+                        </div>""",
+                            unsafe_allow_html=True,
+                        )
+                    with col_toggle:
+                        new_state = st.toggle("On", value=r["enabled"], key=f"rule_{r['name']}", label_visibility="collapsed")
+                        if new_state != r["enabled"]:
+                            st.session_state.rule_engine.toggle_rule(r["name"], new_state)
+                            st.rerun()
+
+                if events:
+                    st.markdown(
+                        f'<div style="font-size:0.88rem;font-weight:700;color:{C["text"]};margin:12px 0 6px 0;">Recent Events</div>',
+                        unsafe_allow_html=True,
+                    )
+                    for ev in events:
+                        st.markdown(
+                            f"""<div class="zone-card" style="border-left:3px solid {C["cyan"]};margin-bottom:4px;padding:6px 10px;">
+                            <span style="font-size:0.78rem;color:{C["text_dim"]};">{ev["timestamp"][:19]}</span>
+                            <span style="font-size:0.82rem;color:{C["text"]};font-weight:600;"> {ev["rule"]}</span>
+                            <span style="font-size:0.78rem;color:{C["text_dim"]};"> in {ev["zone"]}</span>
+                        </div>""",
+                            unsafe_allow_html=True,
+                        )
+        except Exception as e:
+            st.markdown(
+                f'<div style="color:{C["text_dim"]};font-size:0.85rem;">Automation unavailable: {e}</div>',
+                unsafe_allow_html=True,
+            )
+
         # ── LLM Health (Circuit Breaker Status) ──
         st.markdown("")
         st.markdown(f'<div class="section-header">{svg("heart")} LLM Health</div>', unsafe_allow_html=True)

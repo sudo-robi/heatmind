@@ -82,3 +82,6 @@ HEAT_INDEX_THRESHOLD = float(_secret("HEAT_INDEX_THRESHOLD", "45"))
 # Cost-aware routing
 DAILY_BUDGET_USD = float(_secret("DAILY_BUDGET_USD", "2.0"))
 COST_ROUTING_ENABLED = _secret("COST_ROUTING_ENABLED", "0").lower() in ("1", "true", "yes")
+
+# Event-driven automation
+AUTOMATION_ENABLED = _secret("AUTOMATION_ENABLED", "1").lower() in ("1", "true", "yes")
