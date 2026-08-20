@@ -27,6 +27,7 @@ from utils.demo import demo_env_params, demo_heat_intelligence, demo_heatmap, de
 from config import COST_ROUTING_ENABLED
 from utils.llm import LLMError, extract_json, get_llm, get_llm_by_tier, timed_complete
 from utils.metrics import get_metrics
+from utils.trace import Trace, TraceCollector, generate_trace_id
 from utils.personas import (
     TOOL_WHITELIST,
     build_answer_system_prompt,
@@ -74,6 +75,7 @@ class LLMAgent:
         self._metrics = get_metrics()
         self._costs = CostLedger()
         self._delegations: list[dict] = []
+        self._traces = TraceCollector()
 
     # ── Public entry ──────────────────────────────────────────────────────
 
@@ -95,6 +97,15 @@ class LLMAgent:
         date = params.get("date") or parsed.date or datetime.now(UTC).strftime("%Y-%m-%d")
         time_of_day = params.get("time") or parsed.time or "14:00"
         zone = params.get("zone") or parsed.location or "unknown"
+
+        # Create trace for this decision
+        trace_id = generate_trace_id()
+        decision_trace = Trace(
+            trace_id=trace_id,
+            query=query,
+            zone=zone,
+            started_at=datetime.now(UTC).isoformat(),
+        )
 
         self.memory.add_message(session_id, "user", query)
         trace = []
@@ -267,7 +278,22 @@ class LLMAgent:
             "recommendations": answer.get("recommendations", []),
             "cost": self._costs.summary(),
             "delegations": self._delegations,
+            "traces": self._traces.get_all(limit=10),
         }
+
+        # Record the structured trace
+        decision_trace.agent = routing.agent
+        decision_trace.llm_mode = self.llm.name
+        decision_trace.delegations = [d.get("agent", "") for d in self._delegations]
+        decision_trace.complete(
+            outcome="success",
+            confidence=plan.get("confidence", 0.7),
+            severity=answer.get("severity", "unknown"),
+        )
+        try:
+            self._traces.record(decision_trace)
+        except Exception:
+            pass  # Non-critical
 
     # ── Phases ────────────────────────────────────────────────────────────
 

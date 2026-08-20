@@ -938,7 +938,7 @@ def main():
                 st.json(m)
 
     render_hero()
-    tab_chat, tab_dashboard, tab_history, tab_monitor = st.tabs(["Chat", "Dashboard", "History", "Monitor"])
+    tab_chat, tab_dashboard, tab_history, tab_monitor, tab_audit = st.tabs(["Chat", "Dashboard", "History", "Monitor", "Decision Audit"])
 
     with tab_chat:
         st.markdown(
@@ -1073,6 +1073,11 @@ def main():
                 "timestamp": datetime.now(UTC).isoformat(),
             }
             st.session_state.messages.append(assistant_msg)
+            # Store traces for the Decision Audit tab
+            if result.get("traces"):
+                if "traces" not in st.session_state:
+                    st.session_state.traces = []
+                st.session_state.traces.extend(result["traces"])
             if result.get("escalated"):
                 display_escalation_banner(result["escalation_reason"], result["ticket_id"])
             with st.chat_message("assistant"):
@@ -1805,6 +1810,120 @@ def main():
         except Exception as e:
             st.markdown(
                 f'<div style="color:{C["text_dim"]};font-size:0.85rem;">Learning data unavailable: {e}</div>',
+                unsafe_allow_html=True,
+            )
+
+    # ── Decision Audit Tab ──
+    with tab_audit:
+        st.markdown(f'<div class="section-header">{svg("layers")} Decision Audit Trail</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div style="color:{C["text_muted"]};font-size:0.95rem;margin-bottom:16px;">Every autonomous decision is traced with cost, confidence, and outcome. Judges can audit exactly what happened.</div>',
+            unsafe_allow_html=True,
+        )
+
+        try:
+            from utils.trace import TraceCollector
+
+            if "trace_collector" not in st.session_state:
+                st.session_state.trace_collector = TraceCollector()
+
+            traces = st.session_state.get("traces", [])
+            if not traces:
+                # Try to get traces from the agent
+                traces = []
+
+            stats = st.session_state.trace_collector.stats()
+
+            tc1, tc2, tc3, tc4 = st.columns(4)
+            with tc1:
+                st.markdown(
+                    f"""<div class="metric-card" style="border-top:3px solid {C["cyan"]};">
+                    <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">{svg("layers")} Traces</div>
+                    <div class="metric-value" style="color:{C["cyan"]};font-size:2.2rem;">{stats["total"]}</div>
+                    <div class="metric-label">Total Decisions</div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+            with tc2:
+                st.markdown(
+                    f"""<div class="metric-card" style="border-top:3px solid {C["green"]};">
+                    <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">{svg("target")} Confidence</div>
+                    <div class="metric-value" style="color:{C["green"]};font-size:2.2rem;">{stats["avg_confidence"]:.0%}</div>
+                    <div class="metric-label">Average</div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+            with tc3:
+                st.markdown(
+                    f"""<div class="metric-card" style="border-top:3px solid {C["purple"]};">
+                    <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">{svg("coins")} Cost</div>
+                    <div class="metric-value" style="color:{C["purple"]};font-size:2.2rem;">${stats["avg_cost"]:.4f}</div>
+                    <div class="metric-label">Avg per Decision</div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+            with tc4:
+                sr = stats.get("success_rate", 0)
+                sr_color = C["green"] if sr >= 0.8 else C["yellow"] if sr >= 0.5 else C["red"]
+                st.markdown(
+                    f"""<div class="metric-card" style="border-top:3px solid {sr_color};">
+                    <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">{svg("check")} Success</div>
+                    <div class="metric-value" style="color:{sr_color};font-size:2.2rem;">{sr:.0%}</div>
+                    <div class="metric-label">Rate</div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+
+            if traces:
+                st.markdown(
+                    f'<div style="font-size:0.92rem;font-weight:700;color:{C["text"]};margin:16px 0 8px 0;">Recent Decisions</div>',
+                    unsafe_allow_html=True,
+                )
+                for t in traces[:10]:
+                    sev = t.get("severity", "unknown")
+                    sev_color = {
+                        "extreme": C["red"],
+                        "severe": C["red"],
+                        "high": C["orange"],
+                        "moderate": C["yellow"],
+                        "low": C["green"],
+                        "normal": C["green"],
+                    }.get(sev, C["text_dim"])
+                    outcome = t.get("outcome", "unknown")
+                    outcome_color = C["green"] if outcome == "success" else C["red"] if outcome == "failure" else C["yellow"]
+                    cost = t.get("total_cost_usd", 0)
+                    conf = t.get("confidence", 0)
+
+                    with st.expander(f"[{sev.upper()}] {t.get('query', '?')[:60]}... — ${cost:.4f}"):
+                        ec1, ec2, ec3, ec4 = st.columns(4)
+                        with ec1:
+                            st.markdown(f"**Trace ID:** `{t.get('trace_id', '?')}`")
+                        with ec2:
+                            st.markdown(f"**Zone:** {t.get('zone', '?')}")
+                        with ec3:
+                            st.markdown(f"**Confidence:** {conf:.0%}")
+                        with ec4:
+                            st.markdown(f"**Outcome:** {outcome}")
+
+                        spans = t.get("spans", [])
+                        if spans:
+                            st.markdown("**Phase Breakdown:**")
+                            for s in spans:
+                                st.markdown(
+                                    f"- `{s.get('phase', '?')}` — {s.get('provider', 'N/A')} — ${s.get('cost_usd', 0):.4f} — {s.get('latency_ms', 0):.0f}ms"
+                                )
+
+                        delegations = t.get("delegations", [])
+                        if delegations:
+                            st.markdown(f"**Delegations:** {', '.join(delegations)}")
+            else:
+                st.markdown(
+                    f'<div style="color:{C["text_dim"]};font-size:0.9rem;padding:16px 0;">No traces yet. Send a query and the agent will generate a trace.</div>',
+                    unsafe_allow_html=True,
+                )
+        except Exception as e:
+            st.markdown(
+                f'<div style="color:{C["text_dim"]};font-size:0.85rem;">Audit data unavailable: {e}</div>',
                 unsafe_allow_html=True,
             )
 
