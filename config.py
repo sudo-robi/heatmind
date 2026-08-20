@@ -85,3 +85,7 @@ COST_ROUTING_ENABLED = _secret("COST_ROUTING_ENABLED", "0").lower() in ("1", "tr
 
 # Event-driven automation
 AUTOMATION_ENABLED = _secret("AUTOMATION_ENABLED", "1").lower() in ("1", "true", "yes")
+
+# Human-in-the-loop trust gates
+TRUST_THRESHOLD = float(_secret("TRUST_THRESHOLD", "0.6"))
+AUTO_APPROVE_ABOVE = float(_secret("AUTO_APPROVE_ABOVE", "0.7"))

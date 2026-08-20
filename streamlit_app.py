@@ -849,6 +849,43 @@ def main():
             unsafe_allow_html=True,
         )
         st.divider()
+
+        # ── Trust Score ──
+        try:
+            from utils.trust import get_trust
+
+            trust = get_trust()
+            ts = trust.stats()
+            score = ts["score"]
+            score_color = C["green"] if score >= 0.7 else C["yellow"] if score >= 0.4 else C["red"]
+            score_label = "High" if score >= 0.7 else "Medium" if score >= 0.4 else "Low"
+
+            st.markdown(
+                f'<div class="section-header" style="font-size:1rem;">{svg("shield")} Trust Level</div>',
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                f"""<div class="metric-card" style="border-left:3px solid {score_color};padding:12px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <div style="font-size:1.8rem;font-weight:800;color:{score_color};font-family:'JetBrains Mono',monospace;">{score:.0%}</div>
+                        <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:600;">{score_label}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:0.78rem;color:{C["text_dim"]};">{ts["approvals"]} approved</div>
+                        <div style="font-size:0.78rem;color:{C["text_dim"]};">{ts["rejections"]} rejected</div>
+                    </div>
+                </div>
+                <div style="height:6px;background:{C["border_light"]};border-radius:3px;overflow:hidden;margin-top:8px;">
+                    <div style="height:100%;width:{score * 100}%;background:{score_color};border-radius:3px;transition:width 0.5s ease;"></div>
+                </div>
+            </div>""",
+                unsafe_allow_html=True,
+            )
+        except Exception:
+            pass
+
+        st.divider()
         st.markdown(
             f'<div class="section-header" style="font-size:1rem;">{svg("zap")} Actions</div>', unsafe_allow_html=True
         )
@@ -1080,6 +1117,36 @@ def main():
                 st.session_state.traces.extend(result["traces"])
             if result.get("escalated"):
                 display_escalation_banner(result["escalation_reason"], result["ticket_id"])
+                # HITL approval buttons for emergency alerts
+                try:
+                    from utils.trust import get_trust
+
+                    trust = get_trust()
+                    gate = trust.check_gate("emergency_escalation")
+                    if not gate["allowed"]:
+                        st.markdown(
+                            f"""<div style="background:{C["yellow"]}15;border:1px solid {C["yellow"]}40;border-radius:8px;padding:12px;margin:8px 0;">
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                                {svg("shield", 16)}
+                                <span style="font-weight:700;color:{C["yellow"]};font-size:0.92rem;">Trust Gate: Approval Required</span>
+                            </div>
+                            <div style="font-size:0.82rem;color:{C["text_muted"]};margin-bottom:8px;">{gate["reason"]}</div>
+                        </div>""",
+                            unsafe_allow_html=True,
+                        )
+                        ac1, ac2, ac3 = st.columns([1, 1, 8])
+                        with ac1:
+                            if st.button("✅ Approve", key=f"approve_{result.get('trace_id', 'unknown')}", help="Approve this emergency action"):
+                                trust.record_approval()
+                                st.success("Emergency action approved. Trust updated.")
+                                st.rerun()
+                        with ac2:
+                            if st.button("❌ Reject", key=f"reject_{result.get('trace_id', 'unknown')}", help="Reject this emergency action"):
+                                trust.record_rejection()
+                                st.warning("Emergency action rejected. Trust updated.")
+                                st.rerun()
+                except Exception:
+                    pass
             with st.chat_message("assistant"):
                 st.markdown(result["response"])
                 render_msg_metadata(assistant_msg)
