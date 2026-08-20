@@ -33,6 +33,8 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "")
 
+HEATMIND_DEMO_MODE = os.getenv("HEATMIND_DEMO_MODE", "").lower() in ("1", "true", "yes", "demo")
+
 ALERT_WEBHOOK_URL = os.getenv("ALERT_WEBHOOK_URL", "")
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "")
 

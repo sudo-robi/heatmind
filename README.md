@@ -27,7 +27,7 @@ and triggers multi-channel alerts when conditions become dangerous.
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.0-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docker.com)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-8B5CF6?style=for-the-badge)](https://modelcontextprotocol.io)
-[![Tests](https://img.shields.io/badge/Tests-460+-00C853?style=for-the-badge)](https://pytest.org)
+[![Tests](https://img.shields.io/badge/Tests-600+-00C853?style=for-the-badge)](https://pytest.org)
 [![Coverage](https://img.shields.io/badge/Coverage-90%25-FFD600?style=for-the-badge)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-00BFA5?style=for-the-badge)](LICENSE)
 
@@ -487,7 +487,7 @@ HeatMind uses **all 6 FortyGuard Temperature API endpoints**:
 | **GUI** | Streamlit | Web interface with real-time dashboard + decision audit |
 | **Alerts** | Slack / SMTP / Webhooks | Multi-channel emergency notifications |
 | **Integration** | MCP (Model Context Protocol) | Exposes tools to external AI agents |
-| **Testing** | pytest + coverage | 598 tests, 90%+ code coverage |
+| **Testing** | pytest + coverage | 600 tests, 90%+ code coverage |
 | **CI/CD** | GitHub Actions | Automated testing and deployment |
 | **Deployment** | Docker + Docker Compose | Containerized full-stack deployment |
 
@@ -537,7 +537,7 @@ heatmind/
 │   ├── maps.py                # pydeck thermal map rendering
 │   └── mcp_client.py          # MCP server + client integration
 │
-├── tests/                     # 598 tests (90%+ coverage)
+├── tests/                     # 600 tests (90%+ coverage)
 │   ├── conftest.py
 │   ├── test_config.py
 │   ├── test_router.py
@@ -651,6 +651,11 @@ ALERT_WEBHOOK_URL=https://your-webhook-url.com/alerts
 MONITOR_INTERVAL_MINUTES=30
 HEAT_THRESHOLD_C=40
 HEAT_INDEX_THRESHOLD=45
+
+# ━━━ Demo Mode ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Set to true to run the full autonomous agent loop with synthetic data —
+# no API or LLM key required. Perfect for demos and the submission video.
+HEATMIND_DEMO_MODE=false
 ```
 
 ---

@@ -103,3 +103,21 @@ class TestConfigEdgeCases:
         importlib.reload(config)
         assert "mongodb+srv://" in config.MONGO_URI
         assert "cluster0" in config.MONGO_URI
+
+    def test_demo_mode_flag(self, monkeypatch):
+        monkeypatch.setenv("HEATMIND_DEMO_MODE", "true")
+        import importlib
+
+        import config
+
+        importlib.reload(config)
+        assert config.HEATMIND_DEMO_MODE is True
+
+    def test_demo_mode_flag_off_by_default(self, monkeypatch):
+        monkeypatch.delenv("HEATMIND_DEMO_MODE", raising=False)
+        import importlib
+
+        import config
+
+        importlib.reload(config)
+        assert config.HEATMIND_DEMO_MODE is False

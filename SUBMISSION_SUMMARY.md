@@ -64,7 +64,7 @@ Every autonomous decision — plan, tool call, reflection, sub-agent handoff, al
 - **Reflective ReAct loop** with bounded evidence-gathering iterations
 - **Cost ledger** with per-decision USD estimates
 - **MCP integration** — exposes 5 tools so external AI agents (Claude, GPT, Gemini) can query HeatMind
-- **598 tests** with 90%+ code coverage
+- **600 tests** with 90%+ code coverage
 - **Dual interface** — CLI for developers + Streamlit GUI with real-time dashboard and decision audit
 - **Docker-ready** with one-command deployment
 - **Python 3.14**, ruff linting, GitHub Actions CI/CD

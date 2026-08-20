@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import config as _config
 from agents.llm_agent import LLMAgent
 from agents.router import route_query
-from config import HEAT_INDEX_THRESHOLD, HEAT_THRESHOLD_C, MONITOR_INTERVAL_MINUTES
+from config import HEAT_INDEX_THRESHOLD, HEAT_THRESHOLD_C, HEATMIND_DEMO_MODE, MONITOR_INTERVAL_MINUTES
 from memory.session import SessionMemory
 from utils.maps import render_heat_map, render_zones_map
 
@@ -538,7 +538,7 @@ def handle_query(query):
         "date": datetime.now().strftime("%Y-%m-%d"),
         "zone": loc.get("zone", "unknown"),
     }
-    if not FORTYGUARD_API_KEY:
+    if not FORTYGUARD_API_KEY and not HEATMIND_DEMO_MODE:
         return {
             "response": f"**Routed to:** {routing.agent} agent\n**Complexity:** {routing.complexity.value}\n**Urgency:** {routing.urgency.value}\n\nSet `FORTYGUARD_API_KEY` in `.env` to enable live data.",
             "agent": routing.agent,
@@ -549,7 +549,7 @@ def handle_query(query):
         }
     start = time.time()
     try:
-        result = LLMAgent(memory=memory).handle(query, sid, params)
+        result = LLMAgent(memory=memory, demo_mode=HEATMIND_DEMO_MODE).handle(query, sid, params)
         ms = (time.time() - start) * 1000
         memory.log_decision(sid, query, routing.agent, routing.reasoning, "completed")
         return {
