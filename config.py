@@ -78,3 +78,7 @@ ALERT_EMAIL_TO = _secret("ALERT_EMAIL_TO", "")
 MONITOR_INTERVAL_MINUTES = int(_secret("MONITOR_INTERVAL_MINUTES", "30"))
 HEAT_THRESHOLD_C = float(_secret("HEAT_THRESHOLD_C", "40"))
 HEAT_INDEX_THRESHOLD = float(_secret("HEAT_INDEX_THRESHOLD", "45"))
+
+# Cost-aware routing
+DAILY_BUDGET_USD = float(_secret("DAILY_BUDGET_USD", "2.0"))
+COST_ROUTING_ENABLED = _secret("COST_ROUTING_ENABLED", "0").lower() in ("1", "true", "yes")

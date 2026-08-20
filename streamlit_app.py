@@ -1144,6 +1144,43 @@ def main():
             </div>""",
                 unsafe_allow_html=True,
             )
+
+        # ── Budget Gauge ──
+        try:
+            from config import DAILY_BUDGET_USD
+            from utils.cost_ledger import CostLedger
+
+            spent = CostLedger.daily_spent()
+            remaining = round(max(0.0, DAILY_BUDGET_USD - spent), 4)
+            pct = min(100.0, (spent / DAILY_BUDGET_USD * 100)) if DAILY_BUDGET_USD > 0 else 0
+            bar_color = C["green"] if pct < 50 else C["yellow"] if pct < 80 else C["red"]
+            tier_label = "Full" if pct < 50 else "Reduced" if pct < 80 else "Minimal"
+
+            st.markdown(
+                f'<div class="section-header" style="font-size:1rem;">{svg("coins")} Daily Budget</div>',
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                f"""<div class="zone-card" style="border-left:3px solid {bar_color};margin-bottom:16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <div>
+                        <span style="font-size:1.4rem;font-weight:800;color:{bar_color};font-family:'JetBrains Mono',monospace;">${spent:.4f}</span>
+                        <span style="font-size:0.9rem;color:{C["text_dim"]};"> / ${DAILY_BUDGET_USD:.2f}</span>
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <span style="font-size:0.78rem;color:{C["text_dim"]};font-weight:600;">{tier_label} tier</span>
+                        <span style="font-size:0.78rem;color:{C["text_dim"]};">${remaining:.4f} left</span>
+                    </div>
+                </div>
+                <div style="height:8px;background:{C["border_light"]};border-radius:4px;overflow:hidden;">
+                    <div style="height:100%;width:{pct}%;background:{bar_color};border-radius:4px;transition:width 0.5s ease;"></div>
+                </div>
+            </div>""",
+                unsafe_allow_html=True,
+            )
+        except Exception:
+            pass
+
         ca, cb = st.columns(2)
         with ca:
             st.markdown(f'<div class="section-header">{svg("layers")} Agent Distribution</div>', unsafe_allow_html=True)

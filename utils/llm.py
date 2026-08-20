@@ -400,6 +400,35 @@ def reset_llm():
     _llm = None
 
 
+def get_llm_by_tier(tier: str) -> LLMProvider:
+    """Return an LLM provider for the given cost tier.
+
+    Tiers:
+        - "fast": cheap/fast (MockLLM if budget minimal, else same as get_llm)
+        - "balanced": default provider (get_llm)
+        - "deep": same provider but with higher token budget
+        - "free": always MockLLM
+    """
+    if tier == "free":
+        return MockLLM()
+    if tier == "fast":
+        from config import COST_ROUTING_ENABLED
+
+        if not COST_ROUTING_ENABLED:
+            return get_llm()
+        from utils.cost_ledger import CostLedger
+
+        ledger = CostLedger()
+        budget_tier = ledger.check_budget()
+        if budget_tier == "minimal":
+            return MockLLM()
+        return get_llm()
+    if tier == "deep":
+        return get_llm()
+    # default / balanced
+    return get_llm()
+
+
 def provider_name() -> str:
     return get_llm().name
 
@@ -452,6 +481,7 @@ _MODEL_RATES = {
     "gpt-4o-mini": (0.15, 0.60),
     "claude-3-5-haiku-latest": (0.80, 4.00),
     "gemini-2.0-flash": (0.10, 0.40),
+    "gemini-3.6-flash": (0.075, 0.30),
     "llama3.1": (0.0, 0.0),  # local — free
     "mock": (0.0, 0.0),
 }

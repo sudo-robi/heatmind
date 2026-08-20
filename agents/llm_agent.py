@@ -24,7 +24,8 @@ from memory.learning import extract_pattern, patterns_to_prompt
 from memory.session import SessionMemory
 from utils.cost_ledger import CostLedger
 from utils.demo import demo_env_params, demo_heat_intelligence, demo_heatmap, demo_satellite, demo_streetview
-from utils.llm import LLMError, extract_json, get_llm, timed_complete
+from config import COST_ROUTING_ENABLED
+from utils.llm import LLMError, extract_json, get_llm, get_llm_by_tier, timed_complete
 from utils.metrics import get_metrics
 from utils.personas import (
     TOOL_WHITELIST,
@@ -287,11 +288,13 @@ class LLMAgent:
         system = build_plan_system_prompt(agent, learned_patterns=learned)
         user = f"Location: {location or 'unknown'} ({lat:.4f}, {lng:.4f})\nDate: {date}\nUser query: {query}"
         try:
-            text, ms = timed_complete(self.llm, system, user, max_tokens=400, temperature=0.2)
+            # Cost-aware: plan phase uses fast tier (cheap, fast decisions)
+            plan_llm = get_llm_by_tier("fast") if COST_ROUTING_ENABLED else self.llm
+            text, ms = timed_complete(plan_llm, system, user, max_tokens=400, temperature=0.2)
         except LLMError as e:
             logger.warning("Plan phase failed: %s", e)
             return None
-        self._costs.record_llm(self.llm, "plan", len(system) + len(user), len(text), ms)
+        self._costs.record_llm(plan_llm, "plan", len(system) + len(user), len(text), ms)
         plan = extract_json(text)
         if not isinstance(plan.get("tool_calls"), list):
             plan["tool_calls"] = []
@@ -301,11 +304,13 @@ class LLMAgent:
         system = build_answer_system_prompt(routing.agent)
         user = self._answer_user(query, parsed, observations, plan)
         try:
-            text, ms = timed_complete(self.llm, system, user, max_tokens=800, temperature=0.3)
+            # Cost-aware: synthesize uses deep tier (high quality answer generation)
+            synth_llm = get_llm_by_tier("deep") if COST_ROUTING_ENABLED else self.llm
+            text, ms = timed_complete(synth_llm, system, user, max_tokens=800, temperature=0.3)
         except LLMError as e:
             logger.warning("Synthesize phase failed: %s", e)
             return None
-        self._costs.record_llm(self.llm, "synthesize", len(system) + len(user), len(text), ms)
+        self._costs.record_llm(synth_llm, "synthesize", len(system) + len(user), len(text), ms)
         answer = extract_json(text)
         if not answer.get("summary"):
             return None
@@ -317,11 +322,13 @@ class LLMAgent:
             f"--- {tool} ---\n{json.dumps(data, default=str)[:1500]}" for tool, data in observations.items()
         )
         try:
-            text, ms = timed_complete(self.llm, system, user, max_tokens=300, temperature=0.2)
+            # Cost-aware: reflect uses balanced tier
+            reflect_llm = get_llm_by_tier("balanced") if COST_ROUTING_ENABLED else self.llm
+            text, ms = timed_complete(reflect_llm, system, user, max_tokens=300, temperature=0.2)
         except LLMError as e:
             logger.warning("Reflect phase failed: %s", e)
             return None
-        self._costs.record_llm(self.llm, "reflect", len(system) + len(user), len(text), ms)
+        self._costs.record_llm(reflect_llm, "reflect", len(system) + len(user), len(text), ms)
         return extract_json(text)
 
     def _answer_user(self, query: str, parsed, observations: dict, plan: dict) -> str:
