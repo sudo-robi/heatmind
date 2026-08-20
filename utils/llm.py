@@ -78,18 +78,18 @@ class AnthropicLLM(LLMProvider):
 class GeminiLLM(LLMProvider):
     name = "gemini"
 
-    def __init__(self, api_key: str = "", model: str = "gemini-2.0-flash"):
+    def __init__(self, api_key: str = "", model: str = "gemini-3.6-flash"):
         from google import genai
 
         self.model = model
         self._client = genai.Client(api_key=api_key or os.environ.get("GEMINI_API_KEY"))
 
     def complete(self, system: str, user: str, max_tokens: int = 800, temperature: float = 0.2) -> str:
-        resp = self._client.models.generate_content(
+        chat = self._client.chats.create(
             model=self.model,
-            contents=f"{system}\n\n{user}",
             config={"max_output_tokens": max_tokens, "temperature": temperature},
         )
+        resp = chat.send_message(f"{system}\n\n{user}")
         return resp.text or ""
 
 
