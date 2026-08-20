@@ -69,8 +69,15 @@ def build_tool_manifest() -> str:
     )
 
 
-def build_plan_system_prompt(agent: str) -> str:
+def build_plan_system_prompt(agent: str, learned_patterns: str = "") -> str:
     persona = persona_for(agent)
+    pattern_section = ""
+    if learned_patterns:
+        pattern_section = f"""
+
+{learned_patterns}
+
+Use these past successful strategies as guidance, but adapt to the current query."""
     return f"""{persona}
 
 {build_tool_manifest()}
@@ -78,7 +85,7 @@ def build_plan_system_prompt(agent: str) -> str:
 You are a planning agent inside HeatMind. Respond with ONLY a JSON object:
 
 {{"reasoning": "one-sentence plan", "tool_calls": [{{"tool": "env_params", "args": {{}}}}], "actions": []}}
-
+{pattern_section}
 Rules:
 - Choose the minimal set of tools that answers the user's question.
 - "actions" may contain "send_alert" if the situation looks dangerous.

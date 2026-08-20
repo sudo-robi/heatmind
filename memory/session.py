@@ -133,6 +133,7 @@ class SessionMemory:
     - system_prompt: instructions for the agent
     - token tracking: system_prompt_tokens, total_tokens
     - TTL: session_life in minutes, session_history_depth for max messages
+    - patterns: extracted learning patterns from past decisions
     """
 
     def __init__(self):
@@ -143,14 +144,18 @@ class SessionMemory:
             self.sessions = self.db["sessions"]
             self.events = self.db["events"]
             self.decisions = self.db["decisions"]
+            self.patterns = self.db["patterns"]
             self.sessions.create_index([("session_id", 1)])
             self.events.create_index([("session_id", 1), ("event_type", 1)])
             self.events.create_index([("timestamp", -1)])
             self.decisions.create_index([("session_id", 1), ("timestamp", -1)])
+            self.patterns.create_index([("pattern_key", 1)])
+            self.patterns.create_index([("zone", 1), ("timestamp", -1)])
         else:
             self.sessions = _InMemoryCollection("sessions")
             self.events = _InMemoryCollection("events")
             self.decisions = _InMemoryCollection("decisions")
+            self.patterns = _InMemoryCollection("patterns")
 
     def create_session(
         self,
@@ -343,3 +348,75 @@ class SessionMemory:
         return list(
             self.events.find({"data.zone": zone_name, "event_type": "heat_reading"}).sort("timestamp", -1).limit(limit)
         )
+
+    # ── Learning patterns ────────────────────────────────────────────────
+
+    def record_pattern(self, pattern: dict):
+        """Store an extracted learning pattern."""
+        self.patterns.insert_one(pattern)
+
+    def get_successful_patterns(self, zone: str = "", query_type: str = "", limit: int = 10) -> list:
+        """Get successful patterns, optionally filtered by zone and/or query_type."""
+        query = {"outcome": {"$in": ["success", "completed"]}}
+        if zone:
+            query["zone"] = zone
+        if query_type:
+            query["query_type"] = query_type
+        return list(self.patterns.find(query).sort("timestamp", -1).limit(limit))
+
+    def get_all_patterns(self, limit: int = 50) -> list:
+        """Get all stored patterns."""
+        return list(self.patterns.find().sort("timestamp", -1).limit(limit))
+
+    def record_outcome(self, trace_id: str, outcome: str, feedback: str | None = None):
+        """Record outcome and optional user feedback for a trace.
+
+        Updates the pattern with matching trace_id, and also updates the decision record.
+        """
+        update_fields = {"outcome": outcome}
+        if feedback:
+            update_fields["user_feedback"] = feedback
+
+        # Update any patterns with this trace_id
+        self.patterns.update_one(
+            {"trace_id": trace_id},
+            {"$set": update_fields},
+        )
+        # Also update the decision record
+        self.decisions.update_one(
+            {"trace_id": trace_id},
+            {"$set": update_fields},
+        )
+
+    def get_pattern_stats(self) -> dict:
+        """Get aggregate statistics about learned patterns."""
+        all_patterns = list(self.patterns.find())
+        if not all_patterns:
+            return {
+                "total": 0,
+                "zones": 0,
+                "top_tools": [],
+                "success_rate": 0,
+                "feedback_positive": 0,
+                "feedback_negative": 0,
+            }
+
+        zones = set(p.get("zone", "") for p in all_patterns)
+        tool_counts: dict[str, int] = {}
+        for p in all_patterns:
+            for t in p.get("tools_used", []):
+                tool_counts[t] = tool_counts.get(t, 0) + 1
+        top_tools = sorted(tool_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+
+        successful = sum(1 for p in all_patterns if p.get("outcome") in ("success", "completed"))
+        positive = sum(1 for p in all_patterns if p.get("user_feedback") == "positive")
+        negative = sum(1 for p in all_patterns if p.get("user_feedback") == "negative")
+
+        return {
+            "total": len(all_patterns),
+            "zones": len(zones),
+            "top_tools": top_tools,
+            "success_rate": round(successful / len(all_patterns), 3) if all_patterns else 0,
+            "feedback_positive": positive,
+            "feedback_negative": negative,
+        }

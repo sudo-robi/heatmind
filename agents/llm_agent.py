@@ -20,6 +20,7 @@ from agents.chain_agent import ChainAgent
 from agents.nlp_parser import parse_query
 from agents.router import route_query
 from api.fortyguard import FortyGuardClient
+from memory.learning import extract_pattern, patterns_to_prompt
 from memory.session import SessionMemory
 from utils.cost_ledger import CostLedger
 from utils.demo import demo_env_params, demo_heat_intelligence, demo_heatmap, demo_satellite, demo_streetview
@@ -205,6 +206,26 @@ class LLMAgent:
 
         response = self._format_response(answer, observations, parsed)
         self.memory.add_message(session_id, "assistant", response)
+
+        # Extract and store learning pattern from this run
+        tool_calls_used = [s.get("endpoint", "").replace("POST /v1/", "") for s in trace if s.get("status") == "success" and s.get("endpoint", "").startswith("POST")]
+        trace_id = f"tr_{int(start * 1000)}"
+        pattern = extract_pattern({
+            "trace_id": trace_id,
+            "zone": zone,
+            "query": query,
+            "severity": answer.get("severity", "unknown"),
+            "outcome": "success",
+            "confidence": plan.get("confidence", 0.7),
+            "tool_calls": tool_calls_used,
+            "user_feedback": None,
+        })
+        if pattern:
+            try:
+                self.memory.record_pattern(pattern)
+            except Exception:
+                pass  # Non-critical
+
         self.memory.log_decision(
             session_id,
             query,
@@ -212,6 +233,7 @@ class LLMAgent:
             reasoning=plan.get("reasoning", ""),
             outcome="completed",
             extra={
+                "trace_id": trace_id,
                 "severity": answer.get("severity", "unknown"),
                 "llm_mode": self.llm.name,
                 "cost_usd": self._costs.total_usd(),
@@ -226,6 +248,7 @@ class LLMAgent:
         return {
             "agent": "llm",
             "response": response,
+            "trace_id": trace_id,
             "raw_data": observations,
             "reasoning": trace,
             "llm_mode": self.llm.name,
@@ -248,7 +271,20 @@ class LLMAgent:
     # ── Phases ────────────────────────────────────────────────────────────
 
     def _plan(self, query: str, agent: str, location: str | None, lat: float, lng: float, date: str) -> dict | None:
-        system = build_plan_system_prompt(agent)
+        # Load learned patterns for this zone/query type
+        learned = ""
+        try:
+            from memory.learning import _classify_query
+
+            query_type = _classify_query(query)
+            zone = location or "unknown"
+            patterns = self.memory.get_successful_patterns(zone=zone, query_type=query_type, limit=5)
+            if patterns:
+                learned = patterns_to_prompt(patterns)
+        except Exception:
+            pass  # Non-critical — proceed without patterns
+
+        system = build_plan_system_prompt(agent, learned_patterns=learned)
         user = f"Location: {location or 'unknown'} ({lat:.4f}, {lng:.4f})\nDate: {date}\nUser query: {query}"
         try:
             text, ms = timed_complete(self.llm, system, user, max_tokens=400, temperature=0.2)

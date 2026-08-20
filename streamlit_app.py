@@ -957,6 +957,29 @@ def main():
                     render_llm_badge(msg)
                     render_reasoning_trace(msg)
                     render_message_map(msg)
+                    # Feedback buttons for continuous learning
+                    trace_id = msg.get("trace_id")
+                    if trace_id:
+                        fb_key = f"fb_{trace_id}"
+                        existing = msg.get("user_feedback")
+                        if existing:
+                            fb_icon = "👍" if existing == "positive" else "👎"
+                            st.markdown(
+                                f'<span style="font-size:0.82rem;color:{C["text_dim"]};">Feedback recorded: {fb_icon}</span>',
+                                unsafe_allow_html=True,
+                            )
+                        else:
+                            fc1, fc2, fc3 = st.columns([1, 1, 8])
+                            with fc1:
+                                if st.button("👍", key=f"{fb_key}_pos", help="Helpful response"):
+                                    st.session_state.memory.record_outcome(trace_id, "success", "positive")
+                                    msg["user_feedback"] = "positive"
+                                    st.rerun()
+                            with fc2:
+                                if st.button("👎", key=f"{fb_key}_neg", help="Needs improvement"):
+                                    st.session_state.memory.record_outcome(trace_id, "success", "negative")
+                                    msg["user_feedback"] = "negative"
+                                    st.rerun()
 
         if prompt := st.chat_input("Ask about heat conditions..."):
             user_msg = {"role": "user", "content": prompt}
@@ -1045,6 +1068,8 @@ def main():
                 "llm_mode": result.get("llm_mode"),
                 "map_data": result.get("map_data"),
                 "severity": result.get("severity"),
+                "trace_id": result.get("trace_id"),
+                "cost": result.get("cost"),
                 "timestamp": datetime.now(UTC).isoformat(),
             }
             st.session_state.messages.append(assistant_msg)
@@ -1056,6 +1081,21 @@ def main():
                 render_llm_badge(assistant_msg)
                 render_reasoning_trace(assistant_msg)
                 render_message_map(assistant_msg)
+                # Feedback buttons for continuous learning
+                trace_id = assistant_msg.get("trace_id")
+                if trace_id:
+                    fb_key = f"fb_{trace_id}"
+                    fc1, fc2, fc3 = st.columns([1, 1, 8])
+                    with fc1:
+                        if st.button("👍", key=f"{fb_key}_pos", help="Helpful response"):
+                            st.session_state.memory.record_outcome(trace_id, "success", "positive")
+                            assistant_msg["user_feedback"] = "positive"
+                            st.rerun()
+                    with fc2:
+                        if st.button("👎", key=f"{fb_key}_neg", help="Needs improvement"):
+                            st.session_state.memory.record_outcome(trace_id, "success", "negative")
+                            assistant_msg["user_feedback"] = "negative"
+                            st.rerun()
 
     with tab_dashboard:
         st.markdown(
@@ -1495,6 +1535,101 @@ def main():
                     </div>
                 </div>
             </div>""",
+                unsafe_allow_html=True,
+            )
+
+        # ── Lessons Learned (Continuous Learning) ──
+        st.markdown("")
+        st.markdown(f'<div class="section-header">{svg("brain")} Lessons Learned</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div style="color:{C["text_muted"]};font-size:0.95rem;margin-bottom:16px;">The agent learns from every analysis. Patterns from past successful runs improve future planning.</div>',
+            unsafe_allow_html=True,
+        )
+
+        try:
+            stats = st.session_state.memory.get_pattern_stats()
+            all_patterns = st.session_state.memory.get_all_patterns(limit=20)
+
+            lc1, lc2, lc3, lc4 = st.columns(4)
+            with lc1:
+                st.markdown(
+                    f"""<div class="metric-card" style="border-top:3px solid {C["purple"]};">
+                    <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Patterns</div>
+                    <div class="metric-value" style="color:{C["purple"]};font-size:2.2rem;">{stats["total"]}</div>
+                    <div class="metric-label">Extracted</div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+            with lc2:
+                st.markdown(
+                    f"""<div class="metric-card" style="border-top:3px solid {C["cyan"]};">
+                    <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Zones</div>
+                    <div class="metric-value" style="color:{C["cyan"]};font-size:2.2rem;">{stats["zones"]}</div>
+                    <div class="metric-label">Covered</div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+            with lc3:
+                pos = stats.get("feedback_positive", 0)
+                neg = stats.get("feedback_negative", 0)
+                fb_color = C["green"] if pos > neg else C["red"] if neg > pos else C["text_dim"]
+                st.markdown(
+                    f"""<div class="metric-card" style="border-top:3px solid {fb_color};">
+                    <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Feedback</div>
+                    <div class="metric-value" style="color:{fb_color};font-size:2.2rem;">{pos}+ {neg}-</div>
+                    <div class="metric-label">Positive / Negative</div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+            with lc4:
+                sr = stats.get("success_rate", 0)
+                sr_color = C["green"] if sr >= 0.8 else C["yellow"] if sr >= 0.5 else C["red"]
+                st.markdown(
+                    f"""<div class="metric-card" style="border-top:3px solid {sr_color};">
+                    <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Success</div>
+                    <div class="metric-value" style="color:{sr_color};font-size:2.2rem;">{sr:.0%}</div>
+                    <div class="metric-label">Rate</div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+
+            if all_patterns:
+                st.markdown(
+                    f'<div style="font-size:0.92rem;font-weight:700;color:{C["text"]};margin:16px 0 8px 0;">Recent Patterns</div>',
+                    unsafe_allow_html=True,
+                )
+                for p in all_patterns[:8]:
+                    zone = p.get("zone", "?")
+                    qtype = p.get("query_type", "?")
+                    tools = " + ".join(p.get("tools_used", []))
+                    sev = p.get("severity", "?")
+                    occ = p.get("occurrences", 1)
+                    fb = p.get("user_feedback")
+                    fb_icon = "👍" if fb == "positive" else "👎" if fb == "negative" else "—"
+                    st.markdown(
+                        f"""<div class="zone-card" style="border-left:3px solid {C["purple"]};margin-bottom:4px;padding:8px 12px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <div>
+                                <span style="font-weight:700;color:{C["text"]};font-size:0.88rem;">{zone}</span>
+                                <span style="color:{C["text_dim"]};font-size:0.82rem;"> · {qtype}</span>
+                            </div>
+                            <div style="display:flex;gap:12px;align-items:center;">
+                                <span style="font-size:0.78rem;color:{C["cyan"]};font-weight:600;">{tools}</span>
+                                <span style="font-size:0.78rem;color:{C["text_dim"]};">×{occ}</span>
+                                <span style="font-size:0.82rem;">{fb_icon}</span>
+                            </div>
+                        </div>
+                    </div>""",
+                        unsafe_allow_html=True,
+                    )
+            else:
+                st.markdown(
+                    f'<div style="color:{C["text_dim"]};font-size:0.9rem;padding:16px 0;">No patterns learned yet. Send some queries and the agent will start learning.</div>',
+                    unsafe_allow_html=True,
+                )
+        except Exception as e:
+            st.markdown(
+                f'<div style="color:{C["text_dim"]};font-size:0.85rem;">Learning data unavailable: {e}</div>',
                 unsafe_allow_html=True,
             )
 
