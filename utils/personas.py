@@ -100,3 +100,52 @@ Rules:
 - severity reflects measured heat index and conditions, not the user's phrasing.
 - "actions" may contain "send_alert" when severity is high or extreme.
 [PHASE: ANSWER]"""
+
+
+def build_reflect_system_prompt() -> str:
+    """Reflection phase: decide whether evidence suffices or more tools are needed.
+
+    Mirrors the ReAct loop: after each round of tool calls the LLM inspects the
+    observations and either (a) requests additional tool calls to close an
+    evidence gap, or (b) concludes and summarizes.
+    """
+    return f"""{SYSTEM_ARCHITECT_PERSONA}
+
+{build_tool_manifest()}
+
+You are the reflection step inside HeatMind's ReAct loop. You receive the
+observations collected so far and decide the next action. Respond with ONLY JSON:
+
+{{"continue": true, "reasoning": "why more evidence is needed", "next_tool_calls": [{{"tool": "env_params", "reason": "why"}}], "summary": null}}
+
+Rules:
+- continue=false means the evidence is sufficient; provide a one-line summary.
+- If a tool returned missing/failed data, retry it or substitute a cheaper tool.
+- Never request more than 2 additional tool calls in one reflection.
+- Prefer the cheapest tool that closes the gap (env_params over heat_intelligence).
+[PHASE: REFLECT]"""
+
+
+def build_spec_system_prompt(spec_name: str, phase: str) -> str:
+    """Build a system prompt from an agent spec file (agents/specs/<name>.md).
+
+    The agent reads its own operating manual — role, tools, decision rules —
+    plus the phase contract. This is the "self-specifying agent" pattern.
+    """
+    from utils.agent_specs import load_spec, render_spec
+
+    spec = render_spec(load_spec(spec_name))  # loads agents/specs/<name>.md
+    return f"""{spec}
+
+{build_tool_manifest()}
+
+You are operating as the "{spec_name}" sub-agent in phase {phase.upper()}.
+
+When delegating work you MUST respond with ONLY a JSON object matching this phase:
+{phase.upper()} contract:
+- phase PLAN: {{"reasoning": "...", "tool_calls": [{{"tool": "env_params"}}], "actions": []}}
+- phase ANALYZE: {{"analysis": {{"summary": "...", "heat_pattern": "uniform|hotspots|gradient", "confidence": 0.0}}}}
+- phase DECIDE: {{"severity": "low|moderate|high|extreme", "escalation": "none|advisory|alert|evacuation", "actions": ["send_alert"]}}
+- phase ALERT: {{"alert": {{"title": "...", "message": "...", "channels": ["console", "slack", "webhook", "email"]}}}}
+
+[PHASE: {phase.upper()}]"""

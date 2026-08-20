@@ -316,6 +316,35 @@ def render_msg_metadata(msg):
                 unsafe_allow_html=True,
             )
 
+    render_cost_badge(msg)
+    render_delegation_badge(msg)
+
+
+def render_cost_badge(msg):
+    """Show the estimated cost of this decision (cost-aware autonomy)."""
+    cost = msg.get("cost") or {}
+    usd = cost.get("usd") if isinstance(cost, dict) else None
+    if usd is None:
+        return
+    llm_calls = cost.get("llm_calls", 0) if isinstance(cost, dict) else 0
+    tool_calls = cost.get("tool_calls", 0) if isinstance(cost, dict) else 0
+    st.markdown(
+        f'<div class="sentiment-pill" style="background:{C["cyan"]}15;color:{C["cyan"]};border:1px solid {C["cyan"]}40;">💸 ${usd:.4f} · {llm_calls} LLM + {tool_calls} API</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_delegation_badge(msg):
+    """Show which sub-agents this decision was handed off to."""
+    deps = msg.get("delegations") or []
+    if not deps:
+        return
+    names = " → ".join(d.get("agent", "?") for d in deps)
+    st.markdown(
+        f'<div class="sentiment-pill" style="background:{C["purple"]}15;color:{C["purple"]};border:1px solid {C["purple"]}40;">🤝 Handoff: {names}</div>',
+        unsafe_allow_html=True,
+    )
+
 
 def render_llm_badge(msg):
     """Show the LLM mode (live/mock/fallback) as a badge on the message."""
@@ -534,6 +563,8 @@ def handle_query(query):
             "llm_mode": result.get("llm_mode"),
             "map_data": result.get("map_data"),
             "severity": result.get("severity"),
+            "cost": result.get("cost"),
+            "delegations": result.get("delegations"),
         }
     except Exception as e:
         return {
@@ -1165,6 +1196,48 @@ def main():
                         <span style="padding:3px 8px;background:rgba(255,255,255,0.15);border-radius:4px;font-size:0.78rem;">Evacuate outdoor workers</span>
                         <span style="padding:3px 8px;background:rgba(255,255,255,0.15);border-radius:4px;font-size:0.78rem;">Open cooling centers</span>
                         <span style="padding:3px 8px;background:rgba(255,255,255,0.15);border-radius:4px;font-size:0.78rem;">Issue public warning</span>
+                    </div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+
+        st.markdown("")
+        st.markdown(
+            f'<div class="section-header">{svg("activity")} Autonomous Decision Audit</div>', unsafe_allow_html=True
+        )
+        st.markdown(
+            f'<div style="color:{C["text_muted"]};font-size:0.95rem;margin-bottom:12px;">Every autonomous decision — plan, tool call, reflection, sub-agent handoff, alert — logged with reasoning and estimated cost.</div>',
+            unsafe_allow_html=True,
+        )
+        audit = st.session_state.memory.get_audit_trail(limit=15)
+        if not audit:
+            st.caption("No autonomous decisions logged yet. Ask a question in the Chat tab or run an Emergency Drill.")
+        else:
+            for entry in audit:
+                ts = entry.get("timestamp")
+                ts_str = ts.strftime("%H:%M:%S UTC") if hasattr(ts, "strftime") else str(ts)
+                sev = entry.get("severity", "—")
+                sev_color = {"extreme": C["red"], "high": C["yellow"], "moderate": C["accent"], "low": C["green"]}.get(
+                    sev, C["text_muted"]
+                )
+                deps = entry.get("delegations") or []
+                dep_str = " → ".join(deps) if deps else "no delegation"
+                cost_usd = entry.get("cost_usd", 0)
+                st.markdown(
+                    f"""<div class="zone-card" style="border-left:3px solid {sev_color};margin-bottom:8px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                        <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:0.95rem;">
+                            {svg("brain")} {entry.get("decision", "decision")}
+                            <span style="padding:2px 7px;background:{sev_color}20;border:1px solid {sev_color}40;border-radius:5px;color:{sev_color};font-size:0.72rem;font-weight:700;">{sev.upper()}</span>
+                        </div>
+                        <span style="font-size:0.75rem;color:{C["text_dim"]};font-family:'JetBrains Mono',monospace;">{ts_str}</span>
+                    </div>
+                    <div style="font-size:0.85rem;opacity:0.9;margin-bottom:4px;">"{entry.get("query", "")[:100]}"</div>
+                    <div style="font-size:0.78rem;color:{C["text_muted"]};">Reasoning: {entry.get("reasoning", "")[:160]}</div>
+                    <div style="margin-top:6px;display:flex;gap:10px;font-size:0.75rem;color:{C["text_muted"]};flex-wrap:wrap;">
+                        <span>LLM: <strong style="color:{C["text"]};">{entry.get("llm_mode", "—")}</strong></span>
+                        <span>Handoffs: <strong style="color:{C["text"]};">{dep_str}</strong></span>
+                        <span>Cost: <strong style="color:{C["text"]};">${cost_usd:.4f}</strong></span>
                     </div>
                 </div>""",
                     unsafe_allow_html=True,

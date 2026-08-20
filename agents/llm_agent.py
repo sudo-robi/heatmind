@@ -21,15 +21,23 @@ from agents.nlp_parser import parse_query
 from agents.router import route_query
 from api.fortyguard import FortyGuardClient
 from memory.session import SessionMemory
+from utils.cost_ledger import CostLedger
 from utils.demo import demo_env_params, demo_heat_intelligence, demo_heatmap, demo_satellite, demo_streetview
 from utils.llm import LLMError, extract_json, get_llm, timed_complete
 from utils.metrics import get_metrics
-from utils.personas import TOOL_WHITELIST, build_answer_system_prompt, build_plan_system_prompt
+from utils.personas import (
+    TOOL_WHITELIST,
+    build_answer_system_prompt,
+    build_plan_system_prompt,
+    build_reflect_system_prompt,
+    build_spec_system_prompt,
+)
 from utils.validation import flatten_location_data, validate_coords
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_LAT, DEFAULT_LNG = 40.7128, -74.0060
+MAX_REFLECTIONS = 2
 
 
 def summarize_result(data) -> str:
@@ -50,15 +58,20 @@ def summarize_result(data) -> str:
 
 
 class LLMAgent:
-    def __init__(self, memory=None, llm=None):
+    def __init__(self, memory=None, llm=None, demo_mode: bool = False):
         self.memory = memory or SessionMemory()
         self.llm = llm or get_llm()
-        try:
-            self._api = FortyGuardClient()
-        except ValueError:
+        if demo_mode:
             self._api = None
+        else:
+            try:
+                self._api = FortyGuardClient()
+            except ValueError:
+                self._api = None
         self._chain = ChainAgent(memory=self.memory)
         self._metrics = get_metrics()
+        self._costs = CostLedger()
+        self._delegations: list[dict] = []
 
     # ── Public entry ──────────────────────────────────────────────────────
 
@@ -99,8 +112,42 @@ class LLMAgent:
             }
         )
 
-        observations, obs_trace = self._execute_tools(plan, lat, lng, date, time_of_day, zone)
+        observations, obs_trace = self._execute_calls(
+            plan.get("tool_calls") or [], lat, lng, date, time_of_day, zone, start_step=2
+        )
         trace.extend(obs_trace)
+
+        # Reflective ReAct loop: inspect observations, gather more if needed.
+        for _rnd in range(MAX_REFLECTIONS):
+            reflect = self._reflect(query, parsed, observations)
+            if reflect is None:
+                break
+            trace.append(
+                {
+                    "step": len(trace) + 1,
+                    "action": "Reflect on observations",
+                    "endpoint": "LLM",
+                    "reason": reflect.get("reasoning", "Decide whether more evidence is needed"),
+                    "status": "success",
+                    "result_summary": (
+                        "Evidence sufficient, concluding"
+                        if not reflect.get("continue")
+                        else f"Gather {len(reflect.get('next_tool_calls') or [])} more result(s)"
+                    ),
+                }
+            )
+            next_calls = [
+                c
+                for c in (reflect.get("next_tool_calls") or [])
+                if isinstance(c, dict) and c.get("tool") in TOOL_WHITELIST
+            ]
+            if not reflect.get("continue") or not next_calls:
+                break
+            more_obs, more_trace = self._execute_calls(
+                next_calls, lat, lng, date, time_of_day, zone, start_step=len(trace) + 1
+            )
+            observations.update(more_obs)
+            trace.extend(more_trace)
 
         answer = self._synthesize(query, parsed, routing, observations, plan)
         if answer is None:
@@ -117,8 +164,33 @@ class LLMAgent:
             }
         )
 
+        # Sub-agent handoffs: delegate dangerous conditions to specialists.
+        sev = answer.get("severity", "low")
+        if sev in ("high", "extreme"):
+            delegation = self._delegate_emergency(query, zone, observations, answer, sev)
+            for entry in delegation["trace"]:
+                entry["step"] = len(trace) + 1
+                trace.append(entry)
+            if delegation.get("alert"):
+                self._send_alert(zone, delegation["alert"], observations)
+                trace.append(
+                    {
+                        "step": len(trace) + 1,
+                        "action": "Trigger alert",
+                        "endpoint": "alerts",
+                        "reason": "Emergency coordinator authorized autonomous notification",
+                        "status": "success",
+                        "result_summary": "Alert dispatched via public-alert agent",
+                    }
+                )
+        elif sev == "moderate":
+            delegation = self._delegate_analyst(query, observations)
+            if delegation["trace"] is not None:
+                delegation["trace"]["step"] = len(trace) + 1
+                trace.append(delegation["trace"])
+
         actions = answer.get("actions") or []
-        if "send_alert" in actions:
+        if "send_alert" in actions and sev not in ("high", "extreme"):
             self._send_alert(zone, answer, observations)
             trace.append(
                 {
@@ -139,6 +211,13 @@ class LLMAgent:
             decision=f"llm:{routing.agent}",
             reasoning=plan.get("reasoning", ""),
             outcome="completed",
+            extra={
+                "severity": answer.get("severity", "unknown"),
+                "llm_mode": self.llm.name,
+                "cost_usd": self._costs.total_usd(),
+                "delegations": [d["agent"] for d in self._delegations],
+                "tool_calls": [s.get("endpoint") for s in trace if s.get("status") == "success"],
+            },
         )
 
         latency_ms = (time.time() - start) * 1000
@@ -162,6 +241,8 @@ class LLMAgent:
             "response_time_ms": latency_ms,
             "severity": answer.get("severity", "unknown"),
             "recommendations": answer.get("recommendations", []),
+            "cost": self._costs.summary(),
+            "delegations": self._delegations,
         }
 
     # ── Phases ────────────────────────────────────────────────────────────
@@ -170,10 +251,11 @@ class LLMAgent:
         system = build_plan_system_prompt(agent)
         user = f"Location: {location or 'unknown'} ({lat:.4f}, {lng:.4f})\nDate: {date}\nUser query: {query}"
         try:
-            text, _ms = timed_complete(self.llm, system, user, max_tokens=400, temperature=0.2)
+            text, ms = timed_complete(self.llm, system, user, max_tokens=400, temperature=0.2)
         except LLMError as e:
             logger.warning("Plan phase failed: %s", e)
             return None
+        self._costs.record_llm(self.llm, "plan", len(system) + len(user), len(text), ms)
         plan = extract_json(text)
         if not isinstance(plan.get("tool_calls"), list):
             plan["tool_calls"] = []
@@ -183,14 +265,28 @@ class LLMAgent:
         system = build_answer_system_prompt(routing.agent)
         user = self._answer_user(query, parsed, observations, plan)
         try:
-            text, _ms = timed_complete(self.llm, system, user, max_tokens=800, temperature=0.3)
+            text, ms = timed_complete(self.llm, system, user, max_tokens=800, temperature=0.3)
         except LLMError as e:
             logger.warning("Synthesize phase failed: %s", e)
             return None
+        self._costs.record_llm(self.llm, "synthesize", len(system) + len(user), len(text), ms)
         answer = extract_json(text)
         if not answer.get("summary"):
             return None
         return answer
+
+    def _reflect(self, query: str, parsed, observations: dict) -> dict | None:
+        system = build_reflect_system_prompt()
+        user = f"User query: {query}\nLocation: {parsed.location or 'unknown'}\n" + "\n".join(
+            f"--- {tool} ---\n{json.dumps(data, default=str)[:1500]}" for tool, data in observations.items()
+        )
+        try:
+            text, ms = timed_complete(self.llm, system, user, max_tokens=300, temperature=0.2)
+        except LLMError as e:
+            logger.warning("Reflect phase failed: %s", e)
+            return None
+        self._costs.record_llm(self.llm, "reflect", len(system) + len(user), len(text), ms)
+        return extract_json(text)
 
     def _answer_user(self, query: str, parsed, observations: dict, plan: dict) -> str:
         lines = [
@@ -204,13 +300,12 @@ class LLMAgent:
             lines.append(json.dumps(data, default=str)[:2500])
         return "\n".join(lines)
 
-    def _execute_tools(
-        self, plan: dict, lat: float, lng: float, date: str, time_of_day: str, zone: str
+    def _execute_calls(
+        self, calls: list, lat: float, lng: float, date: str, time_of_day: str, zone: str, start_step: int = 2
     ) -> tuple[dict, list]:
         observations: dict = {}
         trace: list = []
-        calls = plan.get("tool_calls") or []
-        for i, call in enumerate(calls[:6], start=2):
+        for i, call in enumerate(calls[:6], start=start_step):
             if not isinstance(call, dict):
                 continue
             tool = call.get("tool")
@@ -229,6 +324,7 @@ class LLMAgent:
             args = call.get("args") or {}
             data, err = self._run_tool(tool, args, lat, lng, date, time_of_day)
             observations[tool] = data
+            self._costs.record_tool(tool)
             trace.append(
                 {
                     "step": i,
@@ -259,8 +355,24 @@ class LLMAgent:
                 return self._tool_streetview(args, lat, lng)
             return {}, "unknown tool"
         except Exception as e:
-            logger.warning("%s tool failed: %s", tool, type(e).__name__)
-            return {}, f"{type(e).__name__}: {str(e)[:120]}"
+            logger.warning("%s tool failed (%s); falling back to demo data", tool, type(e).__name__)
+            demo = self._demo_for(tool, args, lat, lng, date, time_of_day)
+            demo["demo"] = True
+            demo["fallback_reason"] = f"{type(e).__name__}: {str(e)[:120]}"
+            return demo, None
+
+    def _demo_for(self, tool: str, args, lat: float, lng: float, date: str, time_of_day: str) -> dict:
+        if tool == "env_params":
+            return demo_env_params(lat, lng)
+        if tool == "heatmap":
+            return demo_heatmap(lat, lng)
+        if tool == "heat_intelligence":
+            return demo_heat_intelligence(lat, lng)
+        if tool == "satellite":
+            return demo_satellite(lat, lng)
+        if tool == "streetview":
+            return demo_streetview(lat, lng)
+        return {}
 
     def _tool_env_params(self, args, lat, lng, date, time_of_day):
         if self._api is None:
@@ -411,6 +523,75 @@ class LLMAgent:
         }
         send_alert(payload)
         self._metrics.record_alert_sent()
+
+    # ── Sub-agent delegation ─────────────────────────────────────────────
+
+    def _delegate(self, spec_name: str, phase: str, payload: str) -> dict:
+        """Hand off a scoped task to a spec-defined sub-agent.
+
+        Each sub-agent reads its own agents/specs/<name>.md operating manual
+        and runs a single phase (DECIDE / ALERT / ANALYZE). Returns
+        {result, trace, success} and records the LLM cost in the ledger.
+        """
+        system = build_spec_system_prompt(spec_name, phase)
+        try:
+            text, ms = timed_complete(self.llm, system, payload, max_tokens=500, temperature=0.2)
+        except LLMError as e:
+            logger.warning("Sub-agent %s failed: %s", spec_name, e)
+            return {"result": None, "trace": None, "success": False}
+        self._costs.record_llm(self.llm, f"{spec_name}:{phase.lower()}", len(system) + len(payload), len(text), ms)
+        result = extract_json(text)
+        self._delegations.append({"agent": spec_name, "phase": phase, "result": result})
+        trace = {
+            "step": None,
+            "action": f"Delegate to {spec_name}",
+            "endpoint": spec_name,
+            "reason": f"Handed off {phase.lower()} work to the {spec_name} sub-agent",
+            "status": "success" if result else "error",
+            "result_summary": (
+                f"Sub-agent {spec_name} returned its {phase.lower()} output"
+                if result
+                else "Sub-agent returned no output"
+            ),
+        }
+        return {"result": result, "trace": trace, "success": bool(result)}
+
+    def _delegate_emergency(self, query: str, zone: str, observations: dict, answer: dict, sev: str) -> dict:
+        payload = (
+            f"Zone: {zone}\nSeverity assessed: {sev}\n"
+            f"Conditions: {summarize_result(observations.get('env_params'))}\n"
+            f"Recommendations so far: {answer.get('recommendations') or []}\n"
+            f"Task: Decide escalation and the autonomous response plan."
+        )
+        handoff = self._delegate("emergency-coordinator", "DECIDE", payload)
+        traces = []
+        if handoff["trace"] is not None:
+            traces.append(handoff["trace"])
+        alert = None
+        if handoff["success"] and isinstance(handoff["result"], dict):
+            decision = handoff["result"]
+            alert_payload = (
+                f"Zone: {zone}\nSeverity: {decision.get('severity') or sev}\n"
+                f"Heat index: {observations.get('env_params', {}).get('heat_index_celsius')}\n"
+                f"Recommendations: {decision.get('actions') or answer.get('recommendations') or []}\n"
+                f"Task: Draft and dispatch the public alert."
+            )
+            alert_handoff = self._delegate("public-alert", "ALERT", alert_payload)
+            if alert_handoff["trace"] is not None:
+                traces.append(alert_handoff["trace"])
+            if alert_handoff["success"]:
+                alert = alert_handoff["result"]
+        return {"trace": traces, "alert": alert}
+
+    def _delegate_analyst(self, query: str, observations: dict) -> dict:
+        payload = (
+            f"User query: {query}\n"
+            + "\n".join(
+                f"--- {tool} ---\n{json.dumps(data, default=str)[:1200]}" for tool, data in observations.items()
+            )
+            + "\nTask: Produce a structured heat analysis from these observations."
+        )
+        return self._delegate("heat-analyst", "ANALYZE", payload)
 
     # ── Fallback ──────────────────────────────────────────────────────────
 

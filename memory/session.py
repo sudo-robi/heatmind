@@ -315,6 +315,7 @@ class SessionMemory:
         decision: str,
         reasoning: str,
         outcome: str | None = None,
+        extra: dict | None = None,
     ):
         """Log a routing decision with reasoning."""
         record = {
@@ -325,11 +326,17 @@ class SessionMemory:
             "outcome": outcome,
             "timestamp": datetime.now(UTC),
         }
+        if extra:
+            record.update(extra)
         self.decisions.insert_one(record)
 
     def get_recent_decisions(self, session_id: str, limit: int = 10) -> list:
         """Get recent decisions for a session."""
         return list(self.decisions.find({"session_id": session_id}).sort("timestamp", -1).limit(limit))
+
+    def get_audit_trail(self, limit: int = 20) -> list:
+        """Get the most recent autonomous decisions across all sessions."""
+        return list(self.decisions.find().sort("timestamp", -1).limit(limit))
 
     def get_zone_history(self, zone_name: str, limit: int = 20) -> list:
         """Get heat reading history for a zone."""

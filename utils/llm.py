@@ -132,12 +132,134 @@ class MockLLM(LLMProvider):
         phase = "plan"
         if "[PHASE: ANSWER]" in system:
             phase = "answer"
+        elif "[PHASE: REFLECT]" in system:
+            phase = "reflect"
+        elif "[PHASE: ANALYZE]" in system:
+            phase = "analyze"
+        elif "[PHASE: DECIDE]" in system:
+            phase = "decide"
+        elif "[PHASE: ALERT]" in system:
+            phase = "alert"
         elif "[PHASE: PLAN]" in system:
             phase = "plan"
 
         if phase == "answer":
             return self._answer(system, user)
+        if phase == "reflect":
+            return self._reflect(user)
+        if phase == "analyze":
+            return self._analyze(user)
+        if phase == "decide":
+            return self._decide(user)
+        if phase == "alert":
+            return self._alert(user)
         return self._plan(user)
+
+    def _analyze(self, user: str) -> str:
+        """Heat-analyst sub-agent: structured analysis from observations."""
+        return json.dumps(
+            {
+                "analysis": {
+                    "summary": "Thermal distribution shows localized hotspots consistent with the heat index.",
+                    "heat_pattern": "hotspots",
+                    "affected_areas": ["urban core", "dense residential blocks"],
+                    "confidence": 0.8,
+                    "contributing_factors": ["urban density", "high humidity"],
+                }
+            }
+        )
+
+    def _decide(self, user: str) -> str:
+        """Emergency-coordinator sub-agent: severity + escalation decision."""
+        user_l = user.lower()
+        extreme = "extreme" in user_l or "severity assessed: extreme" in user_l
+        high = extreme or "severity assessed: high" in user_l
+        if extreme:
+            return json.dumps(
+                {
+                    "severity": "extreme",
+                    "escalation": "evacuation",
+                    "actions": ["send_alert", "evacuation_guidance"],
+                    "reasoning": "Extreme heat index threatens life; escalate to evacuation.",
+                }
+            )
+        if high:
+            return json.dumps(
+                {
+                    "severity": "high",
+                    "escalation": "alert",
+                    "actions": ["send_alert"],
+                    "reasoning": "High heat index warrants a public heat advisory.",
+                }
+            )
+        return json.dumps(
+            {
+                "severity": "moderate",
+                "escalation": "advisory",
+                "actions": [],
+                "reasoning": "Elevated heat index; issue precautionary advisory.",
+            }
+        )
+
+    def _alert(self, user: str) -> str:
+        """Public-alert sub-agent: draft and dispatch a public alert."""
+        return json.dumps(
+            {
+                "alert": {
+                    "title": "HEAT ALERT — URBAN ZONE",
+                    "message": "Extreme heat is forecast. Stay indoors, hydrate, and check on vulnerable neighbors.",
+                    "channels": ["console", "slack", "email", "webhook"],
+                    "recommendations": ["Stay hydrated", "Use cooling centers", "Check on at-risk residents"],
+                }
+            }
+        )
+
+    def _reflect(self, user: str) -> str:
+        """Reflect on tool observations: continue gathering evidence or conclude."""
+        query = user.lower()
+        missing = any(k in query for k in ("missing", "failed", "no data", "error", "unavailable"))
+        if missing:
+            return json.dumps(
+                {
+                    "continue": True,
+                    "reasoning": "A tool call was missing or failed; retry to close the evidence gap.",
+                    "next_tool_calls": [{"tool": "env_params", "reason": "Retry baseline environmental parameters"}],
+                    "summary": None,
+                }
+            )
+
+        has_heat = "heat_index" in query or "heat index" in query
+        wants_intel = any(k in query for k in ("risk assessment", "intelligence", "comprehensive", "heatmap"))
+        if wants_intel and "heatmap" not in query and "heat_intelligence" not in query:
+            return json.dumps(
+                {
+                    "continue": True,
+                    "reasoning": "User asked for a comprehensive assessment but thermal distribution is missing; gather it now.",
+                    "next_tool_calls": [
+                        {"tool": "heatmap", "reason": "Gather thermal distribution for the risk assessment"}
+                    ],
+                    "summary": None,
+                }
+            )
+
+        if not has_heat:
+            return json.dumps(
+                {
+                    "continue": True,
+                    "reasoning": "No heat index observed yet; collect it before answering.",
+                    "next_tool_calls": [{"tool": "env_params", "reason": "Collect heat index"}],
+                    "summary": None,
+                }
+            )
+
+        return json.dumps(
+            {
+                "continue": False,
+                "reasoning": "Evidence is sufficient: heat index observed and tool results are available.",
+                "next_tool_calls": [],
+                "summary": "Sufficient evidence gathered to synthesize the final answer.",
+            }
+        )
 
     def _plan(self, user: str) -> str:
         query = user.lower()
@@ -167,7 +289,18 @@ class MockLLM(LLMProvider):
 
     def _answer(self, system: str, user: str) -> str:
         severity = "moderate"
-        if "EXTREME" in user or "DANGEROUS" in user:
+        m = re.search(r"heat_index_celsius[^\d]*([\d.]+)", user)
+        if m:
+            hi = float(m.group(1))
+            if hi >= 45:
+                severity = "extreme"
+            elif hi >= 38:
+                severity = "high"
+            elif hi >= 33:
+                severity = "moderate"
+            else:
+                severity = "low"
+        elif "EXTREME" in user or "DANGEROUS" in user:
             severity = "extreme"
         elif "EMERGENCY" in user or "WARNING" in user:
             severity = "high"
@@ -188,6 +321,10 @@ class MockLLM(LLMProvider):
                 "Ensure water availability for outdoor workers",
                 "Schedule rest breaks in shaded areas",
                 "Monitor conditions closely",
+            ],
+            "low": [
+                "Continue routine heat monitoring",
+                "Maintain hydration for outdoor staff",
             ],
         }[severity]
 
@@ -308,3 +445,27 @@ def timed_complete(
     start = time.time()
     text = safe_complete(provider, system, user, max_tokens, temperature)
     return text, (time.time() - start) * 1000
+
+
+# Approximate USD-per-1K-tokens pricing for the supported models (input/output).
+_MODEL_RATES = {
+    "gpt-4o-mini": (0.15, 0.60),
+    "claude-3-5-haiku-latest": (0.80, 4.00),
+    "gemini-2.0-flash": (0.10, 0.40),
+    "llama3.1": (0.0, 0.0),  # local — free
+    "mock": (0.0, 0.0),
+}
+
+
+def estimate_tokens(text: str) -> int:
+    """Rough token estimate (~4 chars per token, OpenAI convention)."""
+    return max(1, len(text or "") // 4)
+
+
+def estimate_cost(provider: LLMProvider, input_chars: int, output_chars: int) -> float:
+    """Estimate the USD cost of one LLM call for the given provider."""
+    model = getattr(provider, "model", provider.name)
+    in_rate, out_rate = _MODEL_RATES.get(model, (0.15, 0.60))
+    tokens_in = max(1, input_chars // 4)
+    tokens_out = max(1, output_chars // 4)
+    return (tokens_in * in_rate + tokens_out * out_rate) / 1000.0

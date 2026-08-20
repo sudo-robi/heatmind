@@ -10,35 +10,64 @@ Extreme heat kills over 5 million people annually, and the crisis is acceleratin
 
 ## Solution
 
-HeatMind is a multi-agent heat intelligence system that wraps FortyGuard's Temperature API in autonomous agents capable of planning, calling, and deciding. Users ask natural language questions like "What's the heat risk for outdoor workers in Phoenix?" and the system routes the query to the optimal agent, executes multi-endpoint analysis, and delivers actionable intelligence with recommendations.
+HeatMind is an **autonomous multi-agent system** that wraps FortyGuard's Temperature API in an agentic reasoning core. Users ask natural language questions like "What's the heat risk for outdoor workers in Phoenix?" and HeatMind plans a tool strategy, executes it, **reflects on the evidence**, iterates if needed, and delegates to specialist sub-agents that act — including dispatching public alerts — **without human approval**.
 
-## Architecture
+## What Makes It Autonomous (Track 06)
 
-HeatMind implements five distinct agentic AI patterns in a single system:
+### 1. Reflective ReAct Loop
 
-1. **Session Memory** — MongoDB-backed persistence with UUID tracking, conversation history, and TTL expiration. The system remembers what you asked before and builds on it.
+HeatMind's LLM core is not a single prompt — it is a loop:
 
-2. **Query Router** — Multi-factor classification (complexity × urgency) with confidence scoring. Simple queries go to the Quick Agent (single endpoint); complex queries trigger the Deep Agent (parallel multi-endpoint analysis); critical queries activate the Emergency Agent with immediate alert fan-out.
+```
+Plan → Tool Calls → Observe → REFLECT → enough evidence? → Synthesize
+  ▲                             │
+  └────── gather more ──────────┘   → SUFFICIENT → answer
+```
 
-3. **Autonomous Monitor** — A scheduled polling loop that checks configured zones against heat thresholds 24/7. When conditions become dangerous, it triggers emergency responses without human intervention.
+After each round of tool execution the LLM inspects the observations and decides whether to gather more evidence (bounded to 2 rounds) or conclude. If a tool fails, the agent degrades gracefully to demo data rather than stranding the loop. Works against OpenAI, Anthropic, Gemini, local Ollama, or a deterministic Mock (zero-config demos and CI).
 
-4. **Conversational Context** — Per-session conversation history enables multi-turn reasoning. Ask about Dubai, then "What about tomorrow?" — the system remembers the location and queries the forecast.
+### 2. Self-Specifying Agents
 
-5. **Emergency Response** — Four-channel alert system (Console, Slack, Email, Webhook) fires simultaneously when thresholds are exceeded. No single point of failure.
+Every agent is defined by a markdown spec (`agents/specs/*.md`) with YAML frontmatter — name, description, tools, autonomy level — plus its decision rules. At runtime **the agent loads its own spec and the LLM reads it as its operating manual**, so roles, tool scopes, and escalation policy are documents, not code.
+
+| Spec | Role |
+|---|---|
+| `coordinator` | Lead agent — plans tool strategy, reflects, delegates |
+| `heat-analyst` | Deep thermal/environmental correlation on observations |
+| `emergency-coordinator` | Severity assessment + escalation decision (advisory/alert/evacuation) |
+| `public-alert` | Drafts + dispatches public alerts to all channels |
+
+### 3. Sub-Agent Handoffs
+
+When the reflective loop assesses dangerous conditions, the coordinator **hands off** to the Emergency Coordinator (DECIDE phase), which authorizes notification, then to the Public Alert agent (ALERT phase), which drafts and dispatches the alert. Each handoff appears in the reasoning trace as agent-to-agent communication — fully auditable.
+
+### 4. Cost-Aware Autonomy
+
+Track 06 judges prize *pragmatic, cost-aware AI*. Every LLM call and API call is recorded in a **cost ledger** with estimated USD; the agent is prompted to prefer the cheapest sufficient tool path (`env_params` over `heatmap` + `heat_intelligence` for simple lookups). The economics of autonomy are visible in the UI.
+
+### 5. Decision Audit Trail
+
+Every autonomous decision — plan, tool call, reflection, sub-agent handoff, alert — is logged to MongoDB with its reasoning, LLM mode, severity, and cost, and rendered as a live **Autonomous Decision Audit** timeline in the Monitor tab.
+
+## Supporting Systems
+
+- **Session Memory** — MongoDB-backed persistence with UUID tracking, conversation history, and TTL expiration. The system remembers what you asked before and builds on it.
+- **Query Router** — Multi-factor classification (complexity × urgency) with confidence scoring. Simple queries use lightweight endpoints; complex queries trigger comprehensive analysis; critical queries activate emergency response.
+- **Autonomous Monitor** — A scheduled polling loop that checks configured zones against heat thresholds 24/7 (with simulation mode for demos).
+- **Emergency Response** — Four-channel alert system (Console, Slack, Email, Webhook) fires simultaneously when the coordinator authorizes it. No single point of failure.
+- **Live Thermal Maps** — Interactive pydeck heat-risk maps rendered from real FortyGuard heatmap GeoJSON.
 
 ## Technical Execution
 
-- **5 specialized agents** across 3 complexity tiers
-- **All 6 FortyGuard API endpoints** utilized (env_params, heatmap, heat_intel, satellite, streetview)
+- **4 spec-defined agents** + 3 legacy deterministic agents across 3 complexity tiers
+- **All 5 FortyGuard API endpoints** utilized (env_params, heatmap, heat_intel, satellite, streetview)
+- **Reflective ReAct loop** with bounded evidence-gathering iterations
+- **Cost ledger** with per-decision USD estimates
 - **MCP integration** — exposes 5 tools so external AI agents (Claude, GPT, Gemini) can query HeatMind
-- **460 tests** with 90%+ code coverage
-- **Dual interface** — CLI for developers + Streamlit GUI with real-time dashboard
+- **598 tests** with 90%+ code coverage
+- **Dual interface** — CLI for developers + Streamlit GUI with real-time dashboard and decision audit
 - **Docker-ready** with one-command deployment
 - **Python 3.14**, ruff linting, GitHub Actions CI/CD
-
-## Innovation
-
-HeatMind is not just an API wrapper — it's an autonomous reasoning system. The NLP parser extracts location, time range, and data types from natural language. The Chain Agent chains multiple API calls to answer复合 questions. Public datasets (census tract health data, heat vulnerability indices) enrich raw temperature readings with socioeconomic context for risk scoring.
 
 ## Impact
 
@@ -52,7 +81,7 @@ HeatMind is not just an API wrapper — it's an autonomous reasoning system. The
 
 **https://heatmind.streamlit.app**
 
-Try asking: "What's the heat index in Dubai right now?" or "Start monitoring Phoenix for dangerous conditions."
+Try asking: "What's the heat index in Dubai right now?" or "Run a simulated emergency drill" — then open the Monitor tab to watch the autonomous decision audit populate.
 
 ---
 
