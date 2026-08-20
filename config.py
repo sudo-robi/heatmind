@@ -8,6 +8,18 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+# Streamlit Cloud secrets fallback — reads from st.secrets when env vars are empty
+def _secret(key: str, default: str = "") -> str:
+    """Get config value from env var, falling back to Streamlit secrets."""
+    val = os.getenv(key, "")
+    if val:
+        return val
+    try:
+        import streamlit as st
+        return str(st.secrets.get(key, default))
+    except Exception:
+        return default
+
 FORTYGUARD_BASE_URL = "https://api.fortyguard.com/v1"
 
 MONGO_DB = os.getenv("MONGO_DB", "heatmind")
@@ -36,33 +48,33 @@ def _validate_api_key():
         )
 
 
-FORTYGUARD_API_KEY = os.getenv("FORTYGUARD_API_KEY", "")
-MONGO_URI = os.getenv("MONGO_URI", "")
+FORTYGUARD_API_KEY = _secret("FORTYGUARD_API_KEY")
+MONGO_URI = _secret("MONGO_URI", "")
 
 
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "").lower()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "")
-LLM_MODEL = os.getenv("LLM_MODEL", "")
+LLM_PROVIDER = _secret("LLM_PROVIDER", "").lower()
+OPENAI_API_KEY = _secret("OPENAI_API_KEY", "")
+ANTHROPIC_API_KEY = _secret("ANTHROPIC_API_KEY", "")
+GEMINI_API_KEY = _secret("GEMINI_API_KEY", "")
+OLLAMA_BASE_URL = _secret("OLLAMA_BASE_URL", "")
+LLM_MODEL = _secret("LLM_MODEL", "")
 
-HEATMIND_DEMO_MODE = os.getenv("HEATMIND_DEMO_MODE", "").lower() in ("1", "true", "yes", "demo")
+HEATMIND_DEMO_MODE = _secret("HEATMIND_DEMO_MODE", "").lower() in ("1", "true", "yes", "demo")
 
-ALERT_WEBHOOK_URL = os.getenv("ALERT_WEBHOOK_URL", "")
-SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "")
+ALERT_WEBHOOK_URL = _secret("ALERT_WEBHOOK_URL", "")
+SLACK_WEBHOOK_URL = _secret("SLACK_WEBHOOK_URL", "")
 
 if ALERT_WEBHOOK_URL and not ALERT_WEBHOOK_URL.startswith("https://"):
     logger.warning("ALERT_WEBHOOK_URL should use HTTPS to prevent credential leakage")
 if SLACK_WEBHOOK_URL and not SLACK_WEBHOOK_URL.startswith("https://"):
     logger.warning("SLACK_WEBHOOK_URL should use HTTPS to prevent credential leakage")
 
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER", "")
-SMTP_PASS = os.getenv("SMTP_PASS", "")
-ALERT_EMAIL_TO = os.getenv("ALERT_EMAIL_TO", "")
+SMTP_HOST = _secret("SMTP_HOST", "smtp.gmail.com")
+SMTP_PORT = int(_secret("SMTP_PORT", "587"))
+SMTP_USER = _secret("SMTP_USER", "")
+SMTP_PASS = _secret("SMTP_PASS", "")
+ALERT_EMAIL_TO = _secret("ALERT_EMAIL_TO", "")
 
-MONITOR_INTERVAL_MINUTES = int(os.getenv("MONITOR_INTERVAL_MINUTES", "30"))
-HEAT_THRESHOLD_C = float(os.getenv("HEAT_THRESHOLD_C", "40"))
-HEAT_INDEX_THRESHOLD = float(os.getenv("HEAT_INDEX_THRESHOLD", "45"))
+MONITOR_INTERVAL_MINUTES = int(_secret("MONITOR_INTERVAL_MINUTES", "30"))
+HEAT_THRESHOLD_C = float(_secret("HEAT_THRESHOLD_C", "40"))
+HEAT_INDEX_THRESHOLD = float(_secret("HEAT_INDEX_THRESHOLD", "45"))
