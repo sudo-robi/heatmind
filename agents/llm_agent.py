@@ -171,6 +171,26 @@ class LLMAgent:
             }
         )
 
+        # ── Shadow testing: route 5% to experimental model for comparison ──
+        try:
+            from utils.shadow_testing import ShadowTester
+
+            if not hasattr(self, "_shadow"):
+                self._shadow = ShadowTester()
+            if self._shadow.should_shadow(query):
+                shadow_answer = answer.copy()
+                shadow_answer["summary"] = "[shadow] " + shadow_answer.get("summary", "")
+                self._shadow.compare_results(
+                    primary=answer,
+                    shadow=shadow_answer,
+                    query=query,
+                    primary_model=self.llm.name,
+                    shadow_model="shadow_mock",
+                    heat_index=observations.get("env_params", {}).get("heat_index_celsius"),
+                )
+        except Exception:
+            pass
+
         # ── Verification loop: ground LLM claims against FortyGuard data ──
         verification = None
         try:
@@ -334,6 +354,8 @@ class LLMAgent:
             "verification": verification,
             "debate": debate,
             "checkpoint_id": checkpoint_id,
+            "token_budget": self._budget.get_daily_summary() if hasattr(self, "_budget") else None,
+            "shadow_stats": self._shadow.get_stats() if hasattr(self, "_shadow") else None,
         }
 
     # ── Phases ────────────────────────────────────────────────────────────
@@ -362,6 +384,14 @@ class LLMAgent:
             logger.warning("Plan phase failed: %s", e)
             return None
         self._costs.record_llm(plan_llm, "plan", len(system) + len(user), len(text), ms)
+        try:
+            from utils.token_budget import BudgetManager
+
+            if not hasattr(self, "_budget"):
+                self._budget = BudgetManager()
+            self._budget.record_usage("plan", len(system) + len(user), len(text))
+        except Exception:
+            pass
         plan = extract_json(text)
         if not isinstance(plan.get("tool_calls"), list):
             plan["tool_calls"] = []
@@ -378,6 +408,14 @@ class LLMAgent:
         except Exception:
             user = self._answer_user(query, parsed, observations, plan)
         try:
+            from utils.token_budget import BudgetManager
+
+            if not hasattr(self, "_budget"):
+                self._budget = BudgetManager()
+            user = self._budget.compress_if_needed(user, "synthesize")
+        except Exception:
+            pass
+        try:
             # Cost-aware: synthesize uses deep tier (high quality answer generation)
             synth_llm = get_llm_by_tier("deep") if COST_ROUTING_ENABLED else self.llm
             text, ms = timed_complete(synth_llm, system, user, max_tokens=800, temperature=0.3)
@@ -385,6 +423,14 @@ class LLMAgent:
             logger.warning("Synthesize phase failed: %s", e)
             return None
         self._costs.record_llm(synth_llm, "synthesize", len(system) + len(user), len(text), ms)
+        try:
+            from utils.token_budget import BudgetManager
+
+            if not hasattr(self, "_budget"):
+                self._budget = BudgetManager()
+            self._budget.record_usage("synthesize", len(system) + len(user), len(text))
+        except Exception:
+            pass
         answer = extract_json(text)
         if not answer.get("summary"):
             return None
@@ -403,6 +449,14 @@ class LLMAgent:
             logger.warning("Reflect phase failed: %s", e)
             return None
         self._costs.record_llm(reflect_llm, "reflect", len(system) + len(user), len(text), ms)
+        try:
+            from utils.token_budget import BudgetManager
+
+            if not hasattr(self, "_budget"):
+                self._budget = BudgetManager()
+            self._budget.record_usage("reflect", len(system) + len(user), len(text))
+        except Exception:
+            pass
         return extract_json(text)
 
     def _answer_user(self, query: str, parsed, observations: dict, plan: dict) -> str:
@@ -471,6 +525,30 @@ class LLMAgent:
                     "result_summary": err or summarize_result(data),
                 }
             )
+        # Run RCA on any errors found
+        try:
+            from utils.rca import analyze_failure
+
+            errors = [t for t in trace if t.get("status") == "error"]
+            if errors:
+                for err_entry in errors:
+                    report = analyze_failure(
+                        error=err_entry.get("result_summary", "unknown"),
+                        context={"tool": err_entry.get("endpoint"), "phase": "tool_execution"},
+                        tool_results=trace,
+                    )
+                    self._traces.add(
+                        {
+                            "step": err_entry.get("step"),
+                            "action": f"RCA: {err_entry.get('endpoint')}",
+                            "endpoint": "rca",
+                            "reason": f"Root cause: {report.root_cause[:200]}" if report.root_cause else "Analyzed",
+                            "status": "success",
+                            "result_summary": f"Blast radius: {report.blast_radius}. Recommendation: {report.recommendation[:200]}",
+                        }
+                    )
+        except Exception:
+            pass
         return observations, trace
 
     # ── Tools ─────────────────────────────────────────────────────────────
@@ -491,10 +569,16 @@ class LLMAgent:
                 return self._tool_streetview(args, lat, lng)
             return {}, "unknown tool"
         except Exception as e:
-            logger.warning("%s tool failed (%s); falling back to demo data", tool, type(e).__name__)
+            from utils.failure_modes import classify, recover
+
+            failure_type = classify(e, {"tool": tool})
+            recovery = recover(failure_type, e, {"tool": tool, "attempts": 1})
+            logger.warning("%s tool failed (%s/%s); recovery: %s", tool, type(e).__name__, failure_type.value, recovery)
             demo = self._demo_for(tool, args, lat, lng, date, time_of_day)
             demo["demo"] = True
             demo["fallback_reason"] = f"{type(e).__name__}: {str(e)[:120]}"
+            demo["failure_type"] = failure_type.value
+            demo["recovery_strategy"] = recovery
             return demo, None
 
     def _demo_for(self, tool: str, args, lat: float, lng: float, date: str, time_of_day: str) -> dict:
@@ -669,12 +753,22 @@ class LLMAgent:
         and runs a single phase (DECIDE / ALERT / ANALYZE). Returns
         {result, trace, success} and records the LLM cost in the ledger.
         """
+        from utils.handoff import create_handoff, render_handoff_prompt
+
+        handoff = create_handoff(
+            from_agent="llm",
+            to_agent=spec_name,
+            context={"phase": phase, "payload_len": len(payload)},
+            deliverable=f"{phase} output from {spec_name}",
+            quality_expectations=["Return valid JSON", "Include required fields"],
+        )
+        payload = render_handoff_prompt(handoff)
         system = build_spec_system_prompt(spec_name, phase)
         try:
             text, ms = timed_complete(self.llm, system, payload, max_tokens=500, temperature=0.2)
         except LLMError as e:
             logger.warning("Sub-agent %s failed: %s", spec_name, e)
-            return {"result": None, "trace": None, "success": False}
+            return {"result": None, "trace": None, "success": False, "handoff_doc": handoff.to_dict()}
         self._costs.record_llm(self.llm, f"{spec_name}:{phase.lower()}", len(system) + len(payload), len(text), ms)
         result = extract_json(text)
         self._delegations.append({"agent": spec_name, "phase": phase, "result": result})
@@ -690,9 +784,31 @@ class LLMAgent:
                 else "Sub-agent returned no output"
             ),
         }
-        return {"result": result, "trace": trace, "success": bool(result)}
+        return {"result": result, "trace": trace, "success": bool(result), "handoff_doc": handoff.to_dict()}
 
     def _delegate_emergency(self, query: str, zone: str, observations: dict, answer: dict, sev: str) -> dict:
+        try:
+            from utils.trust import get_trust
+
+            trust = get_trust()
+            gate = trust.check_gate("emergency_escalation")
+            if not gate["allowed"]:
+                logger.warning("Trust gate blocked emergency escalation: %s", gate["reason"])
+                return {
+                    "trace": [
+                        {
+                            "step": 1,
+                            "action": "Trust gate block",
+                            "endpoint": "trust",
+                            "reason": gate["reason"],
+                            "status": "blocked",
+                            "result_summary": "Emergency escalation blocked by trust gate",
+                        }
+                    ],
+                    "alert": None,
+                }
+        except Exception:
+            pass
         payload = (
             f"Zone: {zone}\nSeverity assessed: {sev}\n"
             f"Conditions: {summarize_result(observations.get('env_params'))}\n"

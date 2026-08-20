@@ -175,6 +175,10 @@ class TestSubAgentHandoff:
             assert any(d["agent"] == "heat-analyst" for d in agent._delegations)
 
     def test_emergency_delegates_to_coordinator_and_alert(self, mock_memory):
+        from utils.trust import get_trust
+
+        trust = get_trust()
+        trust._score = 0.8  # Set above emergency_escalation threshold (0.7)
         with patch("agents.llm_agent.FortyGuardClient") as mock_api:
             mock_api.side_effect = ValueError("no key")
             agent = LLMAgent(memory=mock_memory, llm=None)

@@ -553,6 +553,12 @@ def init_session():
         st.session_state.agent_counts = {"quick": 0, "deep": 0, "emergency": 0}
         st.session_state.escalation_count = 0
         st.session_state.session_start = datetime.now(UTC)
+    try:
+        from utils.session_persist import init_session_state as _init_persist
+
+        _init_persist()
+    except Exception:
+        pass
 
 
 def handle_query(query):
@@ -1121,6 +1127,12 @@ def main():
                 "timestamp": datetime.now(UTC).isoformat(),
             }
             st.session_state.messages.append(assistant_msg)
+            try:
+                from utils.session_persist import add_to_history
+
+                add_to_history(assistant_msg)
+            except Exception:
+                pass
             # Store traces for the Decision Audit tab
             if result.get("traces"):
                 if "traces" not in st.session_state:
@@ -2304,7 +2316,7 @@ def main():
             if st.button("Run Evaluation Harness", use_container_width=True, key="run_eval_harness"):
                 with st.spinner("Running 15 evaluation cases..."):
                     from agents.llm_agent import LLMAgent
-                    from utils.session_memory import SessionMemory
+                    from memory.session import SessionMemory
 
                     mem = SessionMemory()
 
@@ -2386,6 +2398,33 @@ def main():
         except Exception as e:
             st.markdown(
                 f'<div style="color:{C["text_dim"]};font-size:0.85rem;">Code map unavailable: {e}</div>',
+                unsafe_allow_html=True,
+            )
+
+        # ── Session History ──
+        st.markdown("")
+        st.markdown(f'<div class="section-header">{svg("clock")} Session History</div>', unsafe_allow_html=True)
+        try:
+            from utils.session_persist import get_history
+
+            history = get_history(limit=10)
+            if history:
+                for entry in history:
+                    ts = entry.get("timestamp", "?")
+                    agent = entry.get("agent", "?")
+                    content = entry.get("content", "")[:100]
+                    st.markdown(
+                        f'<div style="padding:4px 8px;background:{C["border_light"]};border-radius:4px;margin:4px 0;font-size:0.82rem;color:{C["text"]};"><strong>{agent}</strong> · {ts} · {content}...</div>',
+                        unsafe_allow_html=True,
+                    )
+            else:
+                st.markdown(
+                    f'<div style="color:{C["text_dim"]};font-size:0.9rem;padding:8px 0;">No history yet.</div>',
+                    unsafe_allow_html=True,
+                )
+        except Exception as e:
+            st.markdown(
+                f'<div style="color:{C["text_dim"]};font-size:0.85rem;">Session history unavailable: {e}</div>',
                 unsafe_allow_html=True,
             )
 
