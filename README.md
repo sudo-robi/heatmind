@@ -56,9 +56,9 @@ The system is self-specifying: each agent reads its own markdown operating manua
 
 ---
 
-## How It Works: Five Agentic Patterns
+## How It Works: Six Agentic Patterns
 
-HeatMind implements **five distinct agentic AI patterns** that compose into a single autonomous system:
+HeatMind implements **six distinct agentic AI patterns** that compose into a single autonomous system:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -115,6 +115,57 @@ HeatMind implements **five distinct agentic AI patterns** that compose into a si
 │  │    severity  │ LLM mode   │ outcome     │ timestamp  │ alert    │   │
 │  │                                                                  │   │
 │  │  Rendered as live timeline in Streamlit Monitor tab              │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ PATTERN 6: CONTINUOUS LEARNING                                  │   │
+│  │                                                                  │   │
+│  │  Every analysis extracts a pattern:                              │   │
+│  │    zone + query_type + tools_used + severity + outcome          │   │
+│  │                                                                  │   │
+│  │  Past patterns injected into planning phase as guidance         │   │
+│  │  User feedback (👍/👎) updates trust and pattern quality        │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ PATTERN 7: COST-AWARE ROUTING                                   │   │
+│  │                                                                  │   │
+│  │  Budget-gated tier selection:                                    │   │
+│  │    plan → fast (cheap)                                           │   │
+│  │    reflect → balanced                                            │   │
+│  │    synthesize → deep (high quality)                             │   │
+│  │    budget < 20% → MockLLM (free)                                │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ PATTERN 8: CIRCUIT BREAKER                                      │   │
+│  │                                                                  │   │
+│  │  Self-healing per-provider:                                      │   │
+│  │    CLOSED (healthy) ──▶ 3 failures ──▶ OPEN (blocked)          │   │
+│  │    OPEN ──▶ cooldown ──▶ HALF_OPEN (test) ──▶ CLOSED          │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ PATTERN 9: EVENT-DRIVEN AUTOMATION                              │   │
+│  │                                                                  │   │
+│  │  Rule engine on every monitor check:                             │   │
+│  │    heat_index >= 45 → trigger_emergency                         │   │
+│  │    rising + >= 40 → send_warning                                │   │
+│  │    anomaly detected → deep_analysis                             │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ PATTERN 10: HUMAN-IN-THE-LOOP GATES                             │   │
+│  │                                                                  │   │
+│  │  Trust scoring: 0.5 → +0.05 success, -0.10 failure             │   │
+│  │  Alerts require 0.6 trust, escalations require 0.7              │   │
+│  │  Below threshold → approval buttons in UI                       │   │
+│  │  Above threshold → auto-execute, log "trusted"                  │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘

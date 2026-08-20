@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 class CircuitState(Enum):
-    CLOSED = "closed"      # Normal operation
-    OPEN = "open"          # Blocked — provider failing
+    CLOSED = "closed"  # Normal operation
+    OPEN = "open"  # Blocked — provider failing
     HALF_OPEN = "half_open"  # Testing if provider recovered
 
 

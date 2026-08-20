@@ -8,6 +8,7 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+
 # Streamlit Cloud secrets fallback — reads from st.secrets when env vars are empty
 def _secret(key: str, default: str = "") -> str:
     """Get config value from env var, falling back to Streamlit secrets."""
@@ -16,9 +17,11 @@ def _secret(key: str, default: str = "") -> str:
         return val
     try:
         import streamlit as st
+
         return str(st.secrets.get(key, default))
     except Exception:
         return default
+
 
 FORTYGUARD_BASE_URL = "https://api.fortyguard.com/v1"
 

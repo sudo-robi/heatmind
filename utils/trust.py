@@ -6,7 +6,6 @@ before auto-executing — otherwise the system asks for human approval.
 """
 
 import logging
-from typing import Any
 
 logger = logging.getLogger(__name__)
 

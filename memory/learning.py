@@ -5,7 +5,6 @@ planning phase so the agent improves with every query. Patterned after
 everything-claude-code's continuous-learning skill.
 """
 
-import json
 import logging
 from datetime import UTC, datetime
 
@@ -85,7 +84,7 @@ def patterns_to_prompt(patterns: list[dict]) -> str:
         tools = " + ".join(p.get("tools_used", []))
         sev = p.get("severity", "unknown")
         fb = p.get("user_feedback")
-        fb_note = f" (user approved)" if fb == "positive" else ""
+        fb_note = " (user approved)" if fb == "positive" else ""
         lines.append(f"- {p.get('query_type', '?')} at {sev} severity: {tools}{fb_note}")
 
     return "\n".join(lines)
@@ -99,7 +98,7 @@ def aggregate_patterns(patterns: list[dict]) -> list[dict]:
         by_key.setdefault(key, []).append(p)
 
     aggregated = []
-    for key, group in by_key.items():
+    for _key, group in by_key.items():
         # Sort by: positive feedback first, then by confidence, then by recency
         group.sort(
             key=lambda x: (
@@ -124,7 +123,7 @@ def get_learning_stats(patterns: list[dict]) -> dict:
     if not patterns:
         return {"total_patterns": 0, "zones_covered": 0, "top_tools": [], "avg_confidence": 0}
 
-    zones = set(p.get("zone", "") for p in patterns)
+    zones = {p.get("zone", "") for p in patterns}
     tool_counts: dict[str, int] = {}
     for p in patterns:
         for t in p.get("tools_used", []):

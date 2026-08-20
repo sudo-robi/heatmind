@@ -188,6 +188,12 @@ jobs:
           python -c "from utils.anomaly import AnomalyDetector"
           python -c "from utils.escalation import EscalationManager"
           python -c "from utils.metrics import MetricsCollector"
+          python -c "from utils.agent_circuit_breaker import CircuitBreaker as ACB"
+          python -c "from utils.trace import Trace, TraceCollector"
+          python -c "from utils.trust import TrustScore"
+          python -c "from automation.rules import RuleEngine"
+          python -c "from automation.scheduler import AutomationScheduler"
+          python -c "from memory.learning import extract_pattern"
       - name: Verify Streamlit app loads
         run: |
           timeout 5 python -c "import streamlit; print('Streamlit OK')" || true

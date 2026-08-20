@@ -6,9 +6,7 @@ acts proactively, not just reactively to user queries.
 """
 
 import logging
-import re
-from dataclasses import dataclass, field
-from typing import Any
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +14,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Rule:
     """A single automation rule."""
+
     name: str
     condition: str
     action: str
@@ -114,18 +113,15 @@ class RuleEngine:
                             compare_val = float(value_str)
                         except ValueError:
                             return False
-                        if op == ">=":
-                            return actual >= compare_val
-                        elif op == "<=":
-                            return actual <= compare_val
-                        elif op == ">":
-                            return actual > compare_val
-                        elif op == "<":
-                            return actual < compare_val
-                        elif op == "==":
-                            return actual == compare_val
-                        elif op == "!=":
-                            return actual != compare_val
+                        ops = {
+                            ">=": lambda a, b: a >= b,
+                            "<=": lambda a, b: a <= b,
+                            ">": lambda a, b: a > b,
+                            "<": lambda a, b: a < b,
+                            "==": lambda a, b: a == b,
+                            "!=": lambda a, b: a != b,
+                        }
+                        return ops[op](actual, compare_val)
                     else:
                         # String comparison
                         if op == "==":

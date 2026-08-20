@@ -4,11 +4,9 @@ Every autonomous decision gets a trace_id, per-phase spans, cost attribution,
 and confidence scoring. Judges can audit exactly what happened and why.
 """
 
-import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any
 
 
 def generate_trace_id() -> str:
@@ -19,6 +17,7 @@ def generate_trace_id() -> str:
 @dataclass
 class Span:
     """A single phase within a trace."""
+
     phase: str
     provider: str = ""
     tokens: int = 0
@@ -42,6 +41,7 @@ class Span:
 @dataclass
 class Trace:
     """Complete trace of an autonomous decision."""
+
     trace_id: str
     query: str
     zone: str = ""

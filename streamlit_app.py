@@ -975,7 +975,9 @@ def main():
                 st.json(m)
 
     render_hero()
-    tab_chat, tab_dashboard, tab_history, tab_monitor, tab_audit = st.tabs(["Chat", "Dashboard", "History", "Monitor", "Decision Audit"])
+    tab_chat, tab_dashboard, tab_history, tab_monitor, tab_audit = st.tabs(
+        ["Chat", "Dashboard", "History", "Monitor", "Decision Audit"]
+    )
 
     with tab_chat:
         st.markdown(
@@ -1136,12 +1138,20 @@ def main():
                         )
                         ac1, ac2, ac3 = st.columns([1, 1, 8])
                         with ac1:
-                            if st.button("✅ Approve", key=f"approve_{result.get('trace_id', 'unknown')}", help="Approve this emergency action"):
+                            if st.button(
+                                "✅ Approve",
+                                key=f"approve_{result.get('trace_id', 'unknown')}",
+                                help="Approve this emergency action",
+                            ):
                                 trust.record_approval()
                                 st.success("Emergency action approved. Trust updated.")
                                 st.rerun()
                         with ac2:
-                            if st.button("❌ Reject", key=f"reject_{result.get('trace_id', 'unknown')}", help="Reject this emergency action"):
+                            if st.button(
+                                "❌ Reject",
+                                key=f"reject_{result.get('trace_id', 'unknown')}",
+                                help="Reject this emergency action",
+                            ):
                                 trust.record_rejection()
                                 st.warning("Emergency action rejected. Trust updated.")
                                 st.rerun()
@@ -1575,7 +1585,9 @@ def main():
                             unsafe_allow_html=True,
                         )
                     with col_toggle:
-                        new_state = st.toggle("On", value=r["enabled"], key=f"rule_{r['name']}", label_visibility="collapsed")
+                        new_state = st.toggle(
+                            "On", value=r["enabled"], key=f"rule_{r['name']}", label_visibility="collapsed"
+                        )
                         if new_state != r["enabled"]:
                             st.session_state.rule_engine.toggle_rule(r["name"], new_state)
                             st.rerun()
@@ -1957,7 +1969,7 @@ def main():
                         "normal": C["green"],
                     }.get(sev, C["text_dim"])
                     outcome = t.get("outcome", "unknown")
-                    outcome_color = C["green"] if outcome == "success" else C["red"] if outcome == "failure" else C["yellow"]
+                    C["green"] if outcome == "success" else C["red"] if outcome == "failure" else C["yellow"]
                     cost = t.get("total_cost_usd", 0)
                     conf = t.get("confidence", 0)
 

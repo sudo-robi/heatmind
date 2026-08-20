@@ -20,14 +20,13 @@ from agents.chain_agent import ChainAgent
 from agents.nlp_parser import parse_query
 from agents.router import route_query
 from api.fortyguard import FortyGuardClient
+from config import COST_ROUTING_ENABLED
 from memory.learning import extract_pattern, patterns_to_prompt
 from memory.session import SessionMemory
 from utils.cost_ledger import CostLedger
 from utils.demo import demo_env_params, demo_heat_intelligence, demo_heatmap, demo_satellite, demo_streetview
-from config import COST_ROUTING_ENABLED
 from utils.llm import LLMError, extract_json, get_llm, get_llm_by_tier, timed_complete
 from utils.metrics import get_metrics
-from utils.trace import Trace, TraceCollector, generate_trace_id
 from utils.personas import (
     TOOL_WHITELIST,
     build_answer_system_prompt,
@@ -35,6 +34,7 @@ from utils.personas import (
     build_reflect_system_prompt,
     build_spec_system_prompt,
 )
+from utils.trace import Trace, TraceCollector, generate_trace_id
 from utils.validation import flatten_location_data, validate_coords
 
 logger = logging.getLogger(__name__)
@@ -220,23 +220,29 @@ class LLMAgent:
         self.memory.add_message(session_id, "assistant", response)
 
         # Extract and store learning pattern from this run
-        tool_calls_used = [s.get("endpoint", "").replace("POST /v1/", "") for s in trace if s.get("status") == "success" and s.get("endpoint", "").startswith("POST")]
+        tool_calls_used = [
+            s.get("endpoint", "").replace("POST /v1/", "")
+            for s in trace
+            if s.get("status") == "success" and s.get("endpoint", "").startswith("POST")
+        ]
         trace_id = f"tr_{int(start * 1000)}"
-        pattern = extract_pattern({
-            "trace_id": trace_id,
-            "zone": zone,
-            "query": query,
-            "severity": answer.get("severity", "unknown"),
-            "outcome": "success",
-            "confidence": plan.get("confidence", 0.7),
-            "tool_calls": tool_calls_used,
-            "user_feedback": None,
-        })
+        pattern = extract_pattern(
+            {
+                "trace_id": trace_id,
+                "zone": zone,
+                "query": query,
+                "severity": answer.get("severity", "unknown"),
+                "outcome": "success",
+                "confidence": plan.get("confidence", 0.7),
+                "tool_calls": tool_calls_used,
+                "user_feedback": None,
+            }
+        )
         if pattern:
-            try:
+            import contextlib
+
+            with contextlib.suppress(Exception):
                 self.memory.record_pattern(pattern)
-            except Exception:
-                pass  # Non-critical
 
         self.memory.log_decision(
             session_id,
@@ -290,10 +296,10 @@ class LLMAgent:
             confidence=plan.get("confidence", 0.7),
             severity=answer.get("severity", "unknown"),
         )
-        try:
+        import contextlib
+
+        with contextlib.suppress(Exception):
             self._traces.record(decision_trace)
-        except Exception:
-            pass  # Non-critical
 
     # ── Phases ────────────────────────────────────────────────────────────
 

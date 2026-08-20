@@ -401,7 +401,7 @@ class SessionMemory:
                 "feedback_negative": 0,
             }
 
-        zones = set(p.get("zone", "") for p in all_patterns)
+        zones = {p.get("zone", "") for p in all_patterns}
         tool_counts: dict[str, int] = {}
         for p in all_patterns:
             for t in p.get("tools_used", []):
