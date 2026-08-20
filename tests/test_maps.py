@@ -1,5 +1,7 @@
 """Tests for map rendering helpers (utils/maps.py)."""
 
+import pytest
+
 from utils.maps import extract_geojson, heat_color, render_heat_map, render_zones_map
 
 
@@ -35,11 +37,13 @@ class TestExtractGeojson:
 
 class TestRenderHeatMap:
     def test_returns_deck(self):
+        pytest.importorskip("pydeck")
         deck = render_heat_map(25.2, 55.3, "Dubai", heat_index=46.0)
         assert deck is not None
         assert hasattr(deck, "to_json")
 
     def test_returns_deck_with_geojson(self):
+        pytest.importorskip("pydeck")
         geojson = {"type": "FeatureCollection", "features": []}
         deck = render_heat_map(25.2, 55.3, "Dubai", heatmap_result={"map_data": geojson}, heat_index=40.0)
         assert deck is not None
@@ -47,6 +51,7 @@ class TestRenderHeatMap:
 
 class TestRenderZonesMap:
     def test_returns_deck(self):
+        pytest.importorskip("pydeck")
         zones = [{"name": "Dubai", "lat": 25.2, "lng": 55.3, "heat_index": 46.0}]
         deck = render_zones_map(zones)
         assert deck is not None
@@ -55,6 +60,7 @@ class TestRenderZonesMap:
         assert render_zones_map([]) is None
 
     def test_lat_lng_key_styles(self):
+        pytest.importorskip("pydeck")
         zones = [{"name": "Dubai", "latitude": 25.2, "longitude": 55.3, "heat_index": 46.0}]
         deck = render_zones_map(zones)
         assert deck is not None

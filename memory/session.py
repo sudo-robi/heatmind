@@ -1,7 +1,10 @@
+import logging
 from datetime import UTC, datetime
 from uuid import uuid4
 
 from config import MONGO_DB, MONGO_URI, _validate_mongo_uri
+
+logger = logging.getLogger(__name__)
 
 _client = None
 _sessions: dict = {}
@@ -118,9 +121,13 @@ def get_client():
     if not MONGO_URI:
         return None
     if _client is None:
-        from pymongo import MongoClient
+        try:
+            from pymongo import MongoClient
 
-        _client = MongoClient(MONGO_URI)
+            _client = MongoClient(MONGO_URI)
+        except ImportError:
+            logger.warning("pymongo not installed — falling back to in-memory storage")
+            return None
     return _client
 
 

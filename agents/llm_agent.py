@@ -34,7 +34,7 @@ from utils.personas import (
     build_reflect_system_prompt,
     build_spec_system_prompt,
 )
-from utils.trace import Trace, TraceCollector, generate_trace_id
+from utils.trace import TraceCollector, generate_trace_id
 from utils.validation import flatten_location_data, validate_coords
 
 logger = logging.getLogger(__name__)
@@ -100,12 +100,6 @@ class LLMAgent:
 
         # Create trace for this decision
         trace_id = generate_trace_id()
-        decision_trace = Trace(
-            trace_id=trace_id,
-            query=query,
-            zone=zone,
-            started_at=datetime.now(UTC).isoformat(),
-        )
 
         self.memory.add_message(session_id, "user", query)
         trace = []
@@ -177,7 +171,47 @@ class LLMAgent:
             }
         )
 
-        # Sub-agent handoffs: delegate dangerous conditions to specialists.
+        # ── Verification loop: ground LLM claims against FortyGuard data ──
+        verification = None
+        try:
+            from utils.verification import verify_answer
+
+            verification = verify_answer(answer, observations)
+            trace.append(
+                {
+                    "step": len(trace) + 1,
+                    "action": "Verify answer grounding",
+                    "endpoint": "verification",
+                    "reason": "Cross-reference LLM claims against actual API data",
+                    "status": "success",
+                    "result_summary": (f"Hallucination risk: {verification.get('hallucination_risk', 'unknown')}"),
+                }
+            )
+        except Exception:
+            pass
+
+        # ── Persona debate: multi-perspective review for high-severity ──
+        debate = None
+        sev = answer.get("severity", "low")
+        if sev in ("high", "extreme"):
+            try:
+                from utils.persona_debate import run_debate
+
+                debate = run_debate(query, observations, sev)
+                trace.append(
+                    {
+                        "step": len(trace) + 1,
+                        "action": "Multi-agent persona debate",
+                        "endpoint": "debate",
+                        "reason": f"{len(debate.get('opinions', []))} personas reviewed the analysis",
+                        "status": "success",
+                        "result_summary": f"Consensus: {debate.get('consensus_action', 'none')}",
+                    }
+                )
+            except Exception:
+                pass
+
+        # ── Sub-agent handoffs: delegate dangerous conditions to specialists. ──
         sev = answer.get("severity", "low")
         if sev in ("high", "extreme"):
             delegation = self._delegate_emergency(query, zone, observations, answer, sev)
@@ -218,6 +252,18 @@ class LLMAgent:
 
         response = self._format_response(answer, observations, parsed)
         self.memory.add_message(session_id, "assistant", response)
+
+        # ── Auto-checkpoint at phase boundary ──
+        checkpoint_id = None
+        try:
+            from utils.checkpoint import CheckpointManager
+
+            cp_mgr = CheckpointManager(self.memory)
+            cp = cp_mgr.auto_checkpoint("synthesis_complete", observations, trace)
+            if cp:
+                checkpoint_id = cp.checkpoint_id
+        except Exception:
+            pass
 
         # Extract and store learning pattern from this run
         tool_calls_used = [
@@ -285,21 +331,10 @@ class LLMAgent:
             "cost": self._costs.summary(),
             "delegations": self._delegations,
             "traces": self._traces.get_all(limit=10),
+            "verification": verification,
+            "debate": debate,
+            "checkpoint_id": checkpoint_id,
         }
-
-        # Record the structured trace
-        decision_trace.agent = routing.agent
-        decision_trace.llm_mode = self.llm.name
-        decision_trace.delegations = [d.get("agent", "") for d in self._delegations]
-        decision_trace.complete(
-            outcome="success",
-            confidence=plan.get("confidence", 0.7),
-            severity=answer.get("severity", "unknown"),
-        )
-        import contextlib
-
-        with contextlib.suppress(Exception):
-            self._traces.record(decision_trace)
 
     # ── Phases ────────────────────────────────────────────────────────────
 
@@ -334,7 +369,14 @@ class LLMAgent:
 
     def _synthesize(self, query: str, parsed, routing, observations: dict, plan: dict) -> dict | None:
         system = build_answer_system_prompt(routing.agent)
-        user = self._answer_user(query, parsed, observations, plan)
+        # Compress observations to save tokens before synthesis
+        try:
+            from utils.compression import compress_for_synthesis
+
+            user_compressed = compress_for_synthesis(observations, plan)
+            user = f"User query: {query}\nLocation: {parsed.location or 'unknown'}\nOriginal plan: {plan.get('reasoning', '')}\n\nObservations:\n{user_compressed}"
+        except Exception:
+            user = self._answer_user(query, parsed, observations, plan)
         try:
             # Cost-aware: synthesize uses deep tier (high quality answer generation)
             synth_llm = get_llm_by_tier("deep") if COST_ROUTING_ENABLED else self.llm
@@ -396,6 +438,25 @@ class LLMAgent:
                     }
                 )
                 continue
+            # Defensive hook: check tool input safety before execution
+            try:
+                from utils.defensive_hooks import check_tool_safety
+
+                safety = check_tool_safety(tool, call.get("args") or {})
+                if not safety.get("safe", True):
+                    trace.append(
+                        {
+                            "step": i,
+                            "action": f"Safety block: {tool}",
+                            "endpoint": "defensive_hooks",
+                            "reason": f"Blocked: {safety.get('violations', [])}",
+                            "status": "blocked",
+                            "result_summary": "Safety check failed",
+                        }
+                    )
+                    continue
+            except Exception:
+                pass  # Non-critical — proceed if hooks unavailable
             args = call.get("args") or {}
             data, err = self._run_tool(tool, args, lat, lng, date, time_of_day)
             observations[tool] = data
@@ -462,7 +523,7 @@ class LLMAgent:
         )
         if not aid:
             return {"error": "No activity_id returned"}, "api_error"
-        return flatten_location_data(self._api.wait_for_result(aid, timeout=120)), None
+        return flatten_location_data(self._api.wait_for_result(aid, timeout=300)), None
 
     def _tool_heatmap(self, args, lat, lng, date):
         if self._api is None:
@@ -497,7 +558,7 @@ class LLMAgent:
         )
         if not aid:
             return {"error": "No activity_id returned"}, "api_error"
-        return self._api.wait_for_result(aid, timeout=180), None
+        return self._api.wait_for_result(aid, timeout=300), None
 
     def _tool_heat_intelligence(self, args, lat, lng, date):
         if self._api is None:
@@ -511,7 +572,7 @@ class LLMAgent:
         )
         if not aid:
             return {"error": "No activity_id returned"}, "api_error"
-        return self._api.wait_for_result(aid, timeout=300), None
+        return self._api.wait_for_result(aid, timeout=360), None
 
     def _tool_satellite(self, args, lat, lng, date):
         if self._api is None:
@@ -526,7 +587,7 @@ class LLMAgent:
         )
         if not aid:
             return {"error": "No activity_id returned"}, "api_error"
-        return self._api.wait_for_result(aid, timeout=180), None
+        return self._api.wait_for_result(aid, timeout=300), None
 
     def _tool_streetview(self, args, lat, lng):
         if self._api is None:
@@ -540,7 +601,7 @@ class LLMAgent:
         )
         if not aid:
             return {"error": "No activity_id returned"}, "api_error"
-        return self._api.wait_for_result(aid, timeout=180), None
+        return self._api.wait_for_result(aid, timeout=300), None
 
     # ── Output ────────────────────────────────────────────────────────────
 

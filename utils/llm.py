@@ -85,12 +85,22 @@ class GeminiLLM(LLMProvider):
         self._client = genai.Client(api_key=api_key or os.environ.get("GEMINI_API_KEY"))
 
     def complete(self, system: str, user: str, max_tokens: int = 800, temperature: float = 0.2) -> str:
-        chat = self._client.chats.create(
-            model=self.model,
-            config={"max_output_tokens": max_tokens, "temperature": temperature},
-        )
-        resp = chat.send_message(f"{system}\n\n{user}")
-        return resp.text or ""
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                chat = self._client.chats.create(
+                    model=self.model,
+                    config={"max_output_tokens": max_tokens, "temperature": temperature},
+                )
+                resp = chat.send_message(f"{system}\n\n{user}")
+                return resp.text or ""
+            except Exception as e:
+                if "503" in str(e) and attempt < max_retries - 1:
+                    delay = 2**attempt
+                    logger.warning("Gemini 503 error, retrying in %ds (attempt %d/%d)", delay, attempt + 1, max_retries)
+                    time.sleep(delay)
+                else:
+                    raise LLMError(str(e)) from e
 
 
 class OllamaLLM(LLMProvider):

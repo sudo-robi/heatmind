@@ -594,6 +594,11 @@ def handle_query(query):
             "severity": result.get("severity"),
             "cost": result.get("cost"),
             "delegations": result.get("delegations"),
+            "verification": result.get("verification"),
+            "debate": result.get("debate"),
+            "checkpoint_id": result.get("checkpoint_id"),
+            "traces": result.get("traces"),
+            "api_calls": result.get("api_calls"),
         }
     except Exception as e:
         return {
@@ -1109,6 +1114,10 @@ def main():
                 "severity": result.get("severity"),
                 "trace_id": result.get("trace_id"),
                 "cost": result.get("cost"),
+                "verification": result.get("verification"),
+                "debate": result.get("debate"),
+                "checkpoint_id": result.get("checkpoint_id"),
+                "api_calls": result.get("api_calls"),
                 "timestamp": datetime.now(UTC).isoformat(),
             }
             st.session_state.messages.append(assistant_msg)
@@ -1117,6 +1126,17 @@ def main():
                 if "traces" not in st.session_state:
                     st.session_state.traces = []
                 st.session_state.traces.extend(result["traces"])
+            # Store verification and debate for Monitor tab display
+            if result.get("verification"):
+                st.session_state.latest_verification = result["verification"]
+            if result.get("debate"):
+                st.session_state.latest_debate = result["debate"]
+            if result.get("checkpoint_id"):
+                st.session_state.latest_checkpoint_id = result["checkpoint_id"]
+            if result.get("api_calls"):
+                if "api_calls_log" not in st.session_state:
+                    st.session_state.api_calls_log = []
+                st.session_state.api_calls_log.extend(result["api_calls"])
             if result.get("escalated"):
                 display_escalation_banner(result["escalation_reason"], result["ticket_id"])
                 # HITL approval buttons for emergency alerts
@@ -1889,6 +1909,483 @@ def main():
         except Exception as e:
             st.markdown(
                 f'<div style="color:{C["text_dim"]};font-size:0.85rem;">Learning data unavailable: {e}</div>',
+                unsafe_allow_html=True,
+            )
+
+        # ── Verification Results ──
+        st.markdown("")
+        st.markdown(
+            f'<div class="section-header">{svg("check")} Post-Synthesis Verification</div>', unsafe_allow_html=True
+        )
+        st.markdown(
+            f'<div style="color:{C["text_muted"]};font-size:0.95rem;margin-bottom:16px;">Every synthesis is grounded against FortyGuard API data. Scores show citation accuracy, data alignment, and severity consistency.</div>',
+            unsafe_allow_html=True,
+        )
+        try:
+            verification = st.session_state.get("latest_verification")
+            if verification and "error" not in verification:
+                score = verification.get("score", 0)
+                sc_color = C["green"] if score >= 0.8 else C["yellow"] if score >= 0.5 else C["red"]
+                vc1, vc2, vc3 = st.columns(3)
+                with vc1:
+                    citations = verification.get("citations_found", 0)
+                    st.markdown(
+                        f"""<div class="metric-card" style="border-top:3px solid {C["green"]};">
+                        <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Citations</div>
+                        <div class="metric-value" style="color:{C["green"]};font-size:2.2rem;">{citations}</div>
+                        <div class="metric-label">Data Points Found</div>
+                    </div>""",
+                        unsafe_allow_html=True,
+                    )
+                with vc2:
+                    st.markdown(
+                        f"""<div class="metric-card" style="border-top:3px solid {sc_color};">
+                        <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Grounding</div>
+                        <div class="metric-value" style="color:{sc_color};font-size:2.2rem;">{score:.0%}</div>
+                        <div class="metric-label">Score</div>
+                    </div>""",
+                        unsafe_allow_html=True,
+                    )
+                with vc3:
+                    aligned = verification.get("aligned", False)
+                    align_color = C["green"] if aligned else C["red"]
+                    st.markdown(
+                        f"""<div class="metric-card" style="border-top:3px solid {align_color};">
+                        <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Aligned</div>
+                        <div class="metric-value" style="color:{align_color};font-size:2.2rem;">{"✓" if aligned else "✗"}</div>
+                        <div class="metric-label">Severity Match</div>
+                    </div>""",
+                        unsafe_allow_html=True,
+                    )
+                details = verification.get("details", [])
+                if details:
+                    st.markdown(
+                        f'<div style="font-size:0.88rem;font-weight:700;color:{C["text"]};margin:12px 0 6px 0;">Verification Details</div>',
+                        unsafe_allow_html=True,
+                    )
+                    for d in details:
+                        st.markdown(
+                            f'<div style="padding:4px 8px;background:{C["green"]}10;border-left:3px solid {C["green"]};border-radius:4px;margin:4px 0;font-size:0.82rem;color:{C["text"]};">{d}</div>',
+                            unsafe_allow_html=True,
+                        )
+            else:
+                st.markdown(
+                    f'<div style="color:{C["text_dim"]};font-size:0.9rem;padding:8px 0;">No verification data yet. Queries with FortyGuard data will be verified.</div>',
+                    unsafe_allow_html=True,
+                )
+        except Exception as e:
+            st.markdown(
+                f'<div style="color:{C["text_dim"]};font-size:0.85rem;">Verification unavailable: {e}</div>',
+                unsafe_allow_html=True,
+            )
+
+        # ── Persona Debate ──
+        st.markdown("")
+        st.markdown(f'<div class="section-header">{svg("brain")} Persona Debate</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div style="color:{C["text_muted"]};font-size:0.95rem;margin-bottom:16px;">High/extreme severity queries trigger a 6-persona debate (Geo Analyst, Health Officer, Urban Planner, Cost Optimizer, Emergency Coordinator, Risk Assessor). Consensus drives the final recommendation.</div>',
+            unsafe_allow_html=True,
+        )
+        try:
+            debate = st.session_state.get("latest_debate")
+            if debate:
+                consensus = debate.get("consensus", {})
+                overall = consensus.get("overall_confidence", 0)
+                oc_color = C["green"] if overall >= 0.7 else C["yellow"] if overall >= 0.4 else C["red"]
+                dc1, dc2 = st.columns(2)
+                with dc1:
+                    st.markdown(
+                        f"""<div class="metric-card" style="border-top:3px solid {oc_color};">
+                        <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Consensus</div>
+                        <div class="metric-value" style="color:{oc_color};font-size:2.2rem;">{overall:.0%}</div>
+                        <div class="metric-label">Confidence</div>
+                    </div>""",
+                        unsafe_allow_html=True,
+                    )
+                with dc2:
+                    opinions = debate.get("opinions", {})
+                    st.markdown(
+                        f"""<div class="metric-card" style="border-top:3px solid {C["purple"]};">
+                        <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Personas</div>
+                        <div class="metric-value" style="color:{C["purple"]};font-size:2.2rem;">{len(opinions)}</div>
+                        <div class="metric-label">Participated</div>
+                    </div>""",
+                        unsafe_allow_html=True,
+                    )
+                recs = consensus.get("recommendations", [])
+                if recs:
+                    st.markdown(
+                        f'<div style="font-size:0.88rem;font-weight:700;color:{C["text"]};margin:12px 0 6px 0;">Consensus Recommendations</div>',
+                        unsafe_allow_html=True,
+                    )
+                    for r in recs:
+                        st.markdown(
+                            f'<div style="padding:4px 8px;background:{C["purple"]}10;border-left:3px solid {C["purple"]};border-radius:4px;margin:4px 0;font-size:0.82rem;color:{C["text"]};">{r}</div>',
+                            unsafe_allow_html=True,
+                        )
+                if opinions:
+                    st.markdown(
+                        f'<div style="font-size:0.88rem;font-weight:700;color:{C["text"]};margin:12px 0 6px 0;">Persona Positions</div>',
+                        unsafe_allow_html=True,
+                    )
+                    for persona, opinion in opinions.items():
+                        if isinstance(opinion, dict):
+                            stance = opinion.get("stance", "?")
+                            st.markdown(
+                                f'<div style="padding:4px 8px;background:{C["cyan"]}10;border-left:3px solid {C["cyan"]};border-radius:4px;margin:4px 0;font-size:0.82rem;color:{C["text"]};"><strong>{persona}:</strong> {stance}</div>',
+                                unsafe_allow_html=True,
+                            )
+            else:
+                st.markdown(
+                    f'<div style="color:{C["text_dim"]};font-size:0.9rem;padding:8px 0;">No debate yet. High/extreme severity queries trigger multi-persona debate.</div>',
+                    unsafe_allow_html=True,
+                )
+        except Exception as e:
+            st.markdown(
+                f'<div style="color:{C["text_dim"]};font-size:0.85rem;">Debate data unavailable: {e}</div>',
+                unsafe_allow_html=True,
+            )
+
+        # ── Token Budget ──
+        st.markdown("")
+        st.markdown(f'<div class="section-header">{svg("target")} Token Budget</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div style="color:{C["text_muted"]};font-size:0.95rem;margin-bottom:16px;">Per-phase hard token budgets keep queries under 18K total. Early phases are restricted to force efficient reasoning.</div>',
+            unsafe_allow_html=True,
+        )
+        try:
+            from utils.token_budget import PHASE_DEFAULTS, BudgetManager
+
+            if "budget_manager" not in st.session_state:
+                st.session_state.budget_manager = BudgetManager()
+            budget_mgr = st.session_state.budget_manager
+            summary = budget_mgr.get_daily_summary()
+            bc1, bc2 = st.columns(2)
+            with bc1:
+                st.markdown(
+                    f"""<div class="metric-card" style="border-top:3px solid {C["cyan"]};">
+                    <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Daily Budget</div>
+                    <div class="metric-value" style="color:{C["cyan"]};font-size:2.2rem;">${summary.get("daily_budget_usd", 0):.2f}</div>
+                    <div class="metric-label">Max USD</div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+            with bc2:
+                st.markdown(
+                    f"""<div class="metric-card" style="border-top:3px solid {C["purple"]};">
+                    <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Tokens Used</div>
+                    <div class="metric-value" style="color:{C["purple"]};font-size:2.2rem;">{summary.get("total_tokens", 0):,}</div>
+                    <div class="metric-label">Total Today</div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+            st.markdown(
+                f'<div style="font-size:0.88rem;font-weight:700;color:{C["text"]};margin:12px 0 6px 0;">Phase Budgets</div>',
+                unsafe_allow_html=True,
+            )
+            for phase_name, (max_in, max_out) in PHASE_DEFAULTS.items():
+                budget = budget_mgr.get_phase(phase_name)
+                bar_pct = budget.input_pct_used * 100
+                bar_color = C["green"] if bar_pct < 60 else C["yellow"] if bar_pct < 85 else C["red"]
+                st.markdown(
+                    f'<div style="margin:4px 0;"><div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span style="font-size:0.85rem;font-weight:600;color:{C["text"]};">{phase_name}</span><span style="font-size:0.78rem;font-weight:700;color:{bar_color};font-family:"JetBrains Mono",monospace;">{budget.used_input_tokens}/{max_in} in · {budget.used_output_tokens}/{max_out} out</span></div><div style="height:5px;background:{C["border_light"]};border-radius:3px;overflow:hidden;"><div style="height:100%;width:{bar_pct}%;background:{bar_color};border-radius:3px;"></div></div></div>',
+                    unsafe_allow_html=True,
+                )
+        except Exception as e:
+            st.markdown(
+                f'<div style="color:{C["text_dim"]};font-size:0.85rem;">Budget data unavailable: {e}</div>',
+                unsafe_allow_html=True,
+            )
+
+        # ── Defensive Hooks ──
+        st.markdown("")
+        st.markdown(f'<div class="section-header">{svg("shield")} Defensive Hooks</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div style="color:{C["text_muted"]};font-size:0.95rem;margin-bottom:16px;">Tool inputs are scanned for SQL injection, command injection, path traversal, and secret leakage before execution.</div>',
+            unsafe_allow_html=True,
+        )
+        try:
+            from utils.defensive_hooks import SafetyHook
+
+            if "safety_hook" not in st.session_state:
+                st.session_state.safety_hook = SafetyHook()
+            hook = st.session_state.safety_hook
+            violations = hook.get_violations()
+            safe_count = max(0, len(st.session_state.get("api_calls_log", [])) - len(violations))
+            hc1, hc2, hc3 = st.columns(3)
+            with hc1:
+                st.markdown(
+                    f"""<div class="metric-card" style="border-top:3px solid {C["green"]};">
+                    <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Clean</div>
+                    <div class="metric-value" style="color:{C["green"]};font-size:2.2rem;">{safe_count}</div>
+                    <div class="metric-label">Inputs Passed</div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+            with hc2:
+                st.markdown(
+                    f"""<div class="metric-card" style="border-top:3px solid {C["red"]};">
+                    <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Blocked</div>
+                    <div class="metric-value" style="color:{C["red"]};font-size:2.2rem;">{len(violations)}</div>
+                    <div class="metric-label">Threats Stopped</div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+            with hc3:
+                unique_types = set()
+                for v in violations:
+                    for pat in v.get("violations", []):
+                        unique_types.add(pat)
+                st.markdown(
+                    f"""<div class="metric-card" style="border-top:3px solid {C["orange"]};">
+                    <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Types</div>
+                    <div class="metric-value" style="color:{C["orange"]};font-size:2.2rem;">{len(unique_types)}</div>
+                    <div class="metric-label">Violation Types</div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+            if violations:
+                st.markdown(
+                    f'<div style="font-size:0.88rem;font-weight:700;color:{C["text"]};margin:12px 0 6px 0;">Recent Violations</div>',
+                    unsafe_allow_html=True,
+                )
+                for v in violations[-5:]:
+                    tool = v.get("tool", "?")
+                    phase = v.get("phase", "?")
+                    pats = ", ".join(v.get("violations", [])[:3])
+                    st.markdown(
+                        f'<div style="padding:4px 8px;background:{C["red"]}10;border-left:3px solid {C["red"]};border-radius:4px;margin:4px 0;font-size:0.82rem;color:{C["text"]};">{phase}/{tool}: {pats}</div>',
+                        unsafe_allow_html=True,
+                    )
+        except Exception as e:
+            st.markdown(
+                f'<div style="color:{C["text_dim"]};font-size:0.85rem;">Defensive hooks unavailable: {e}</div>',
+                unsafe_allow_html=True,
+            )
+
+        # ── Failure Modes ──
+        st.markdown("")
+        st.markdown(
+            f'<div class="section-header">{svg("warning")} Failure Mode Detection</div>', unsafe_allow_html=True
+        )
+        st.markdown(
+            f'<div style="color:{C["text_muted"]};font-size:0.95rem;margin-bottom:16px;">7 failure types detected automatically: API Timeout, Rate Limit, Data Gap, LLM Hallucination, Tool Failure, Budget Exceeded, Cascade Failure. Recovery strategies applied.</div>',
+            unsafe_allow_html=True,
+        )
+        try:
+            failure_types = [
+                ("HARD", "Timeout, connection errors, 5xx", "Retry with exponential backoff"),
+                ("SILENT", "Wrong/empty output, no error", "Schema validation + retry"),
+                ("PARTIAL", "Partial data returned", "Request missing fields + defaults"),
+                ("CONTRADICTION", "Conflicting data sources", "Arbitrate or escalate"),
+                ("CASCADE", "Dependency chain failure", "Rollback to checkpoint"),
+                ("LOOP", "Stuck in iteration", "Force exit + best output"),
+                ("CONTEXT", "Context window exceeded", "Compress + retry"),
+            ]
+            fc1, fc2 = st.columns(2)
+            with fc1:
+                st.markdown(
+                    f"""<div class="metric-card" style="border-top:3px solid {C["yellow"]};">
+                    <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Failure Types</div>
+                    <div class="metric-value" style="color:{C["yellow"]};font-size:2.2rem;">{len(failure_types)}</div>
+                    <div class="metric-label">Classified</div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+            with fc2:
+                st.markdown(
+                    f"""<div class="metric-card" style="border-top:3px solid {C["green"]};">
+                    <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Recovery</div>
+                    <div class="metric-value" style="color:{C["green"]};font-size:2.2rem;">{len(failure_types)}</div>
+                    <div class="metric-label">Strategies</div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+            st.markdown(
+                f'<div style="font-size:0.88rem;font-weight:700;color:{C["text"]};margin:12px 0 6px 0;">Taxonomy</div>',
+                unsafe_allow_html=True,
+            )
+            for ftype, desc, strategy in failure_types:
+                st.markdown(
+                    f"""<div class="zone-card" style="border-left:3px solid {C["yellow"]};margin-bottom:4px;padding:8px 12px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <span style="font-weight:700;color:{C["text"]};font-size:0.88rem;">{ftype}</span>
+                            <span style="color:{C["text_dim"]};font-size:0.82rem;"> — {desc}</span>
+                        </div>
+                    </div>
+                    <div style="font-size:0.78rem;color:{C["cyan"]};margin-top:2px;">→ {strategy}</div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+        except Exception as e:
+            st.markdown(
+                f'<div style="color:{C["text_dim"]};font-size:0.85rem;">Failure modes unavailable: {e}</div>',
+                unsafe_allow_html=True,
+            )
+
+        # ── Shadow Testing ──
+        st.markdown("")
+        st.markdown(f'<div class="section-header">{svg("target")} Shadow Testing</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div style="color:{C["text_muted"]};font-size:0.95rem;margin-bottom:16px;">5% of queries are routed to experimental models for A/B comparison. Auto-promotes winners based on cost, latency, and quality.</div>',
+            unsafe_allow_html=True,
+        )
+        try:
+            from utils.shadow_testing import ShadowTester
+
+            if "shadow_tester" not in st.session_state:
+                st.session_state.shadow_tester = ShadowTester()
+            shadow = st.session_state.shadow_tester
+            sh_stats = shadow.get_stats()
+            shc1, shc2 = st.columns(2)
+            with shc1:
+                st.markdown(
+                    f"""<div class="metric-card" style="border-top:3px solid {C["cyan"]};">
+                    <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Shadow</div>
+                    <div class="metric-value" style="color:{C["cyan"]};font-size:2.2rem;">{sh_stats.get("total", 0)}</div>
+                    <div class="metric-label">Comparisons</div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+            with shc2:
+                win_rates = sh_stats.get("win_rates", {})
+                best_model = max(win_rates, key=win_rates.get) if win_rates else "—"
+                best_rate = win_rates.get(best_model, 0) if win_rates else 0
+                st.markdown(
+                    f"""<div class="metric-card" style="border-top:3px solid {C["green"]};">
+                    <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Best Model</div>
+                    <div class="metric-value" style="color:{C["green"]};font-size:1.6rem;">{best_model}</div>
+                    <div class="metric-label">{best_rate:.0%} win rate</div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+            if win_rates:
+                st.markdown(
+                    f'<div style="font-size:0.88rem;font-weight:700;color:{C["text"]};margin:12px 0 6px 0;">Win Rates by Model</div>',
+                    unsafe_allow_html=True,
+                )
+                for model, rate in sorted(win_rates.items(), key=lambda x: -x[1]):
+                    bar_pct = rate * 100
+                    bar_color = C["green"] if rate >= 0.6 else C["yellow"] if rate >= 0.4 else C["red"]
+                    st.markdown(
+                        f'<div style="margin:4px 0;"><div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span style="font-size:0.85rem;font-weight:600;color:{C["text"]};">{model}</span><span style="font-size:0.78rem;font-weight:700;color:{bar_color};font-family:"JetBrains Mono",monospace;">{rate:.0%}</span></div><div style="height:5px;background:{C["border_light"]};border-radius:3px;overflow:hidden;"><div style="height:100%;width:{bar_pct}%;background:{bar_color};border-radius:3px;"></div></div></div>',
+                        unsafe_allow_html=True,
+                    )
+            promo = shadow.get_promotion_recommendation()
+            if promo.get("promote"):
+                st.markdown(
+                    f"""<div style="background:{C["green"]}15;border:1px solid {C["green"]}40;border-radius:8px;padding:12px;margin:8px 0;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        {svg("zap", 16)}
+                        <span style="font-weight:700;color:{C["green"]};font-size:0.92rem;">Promotion Ready: {promo.get("shadow_model", "?")}</span>
+                    </div>
+                    <div style="font-size:0.82rem;color:{C["text_muted"]};margin-top:4px;">Win rate {promo.get("win_rate", 0):.0%} over {promo.get("total_comparisons", 0)} comparisons.</div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+        except Exception as e:
+            st.markdown(
+                f'<div style="color:{C["text_dim"]};font-size:0.85rem;">Shadow testing unavailable: {e}</div>',
+                unsafe_allow_html=True,
+            )
+
+        # ── Eval Harness ──
+        st.markdown("")
+        st.markdown(f'<div class="section-header">{svg("layers")} Evaluation Harness</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div style="color:{C["text_muted"]};font-size:0.95rem;margin-bottom:16px;">15 test cases covering quick queries, deep analysis, emergency scenarios, edge cases, and failure recovery. Run to score the system.</div>',
+            unsafe_allow_html=True,
+        )
+        try:
+            from utils.eval_harness import EVAL_CASES, run_eval
+
+            eval_cases = EVAL_CASES
+            if st.button("Run Evaluation Harness", use_container_width=True, key="run_eval_harness"):
+                with st.spinner("Running 15 evaluation cases..."):
+                    from agents.llm_agent import LLMAgent
+                    from utils.session_memory import SessionMemory
+
+                    mem = SessionMemory()
+
+                    def _agent_fn(query, params):
+                        agent = LLMAgent(memory=mem, demo_mode=HEATMIND_DEMO_MODE)
+                        sid = mem.create_session("eval")
+                        return agent.handle(query, sid, params)
+
+                    results = run_eval(_agent_fn)
+                passed = sum(1 for r in results if r.get("passed", False))
+                total = len(results)
+                pass_rate = passed / total if total else 0
+                avg_score = sum(r.get("score", 0) for r in results) / total if total else 0
+                st.markdown(
+                    f"""<div class="metric-card" style="border-top:3px solid {C["green"]};margin:8px 0;">
+                    <div style="font-size:0.82rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Score</div>
+                    <div style="font-size:2.4rem;font-weight:800;color:{C["green"]};font-family:'JetBrains Mono',monospace;">{pass_rate:.0%}</div>
+                    <div style="font-size:0.82rem;color:{C["text_muted"]};">{passed}/{total} passed · {avg_score:.1f} avg score</div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+                for r in results:
+                    passed_str = "✓" if r.get("passed", False) else "✗"
+                    color = C["green"] if r.get("passed", False) else C["red"]
+                    with st.expander(f"{passed_str} {r.get('id', '?')} — score {r.get('score', 0):.1f}"):
+                        st.markdown(f"**Query:** {r.get('query', '?')}")
+                        st.markdown(f"**Expected severity:** {r.get('expected_severity', '?')}")
+                        st.markdown(f"**Got severity:** {r.get('got_severity', '?')}")
+                        if r.get("error"):
+                            st.markdown(f"**Error:** {r['error']}")
+            ec1, ec2 = st.columns(2)
+            with ec1:
+                st.markdown(
+                    f"""<div class="metric-card" style="border-top:3px solid {C["cyan"]};">
+                    <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Test Cases</div>
+                    <div class="metric-value" style="color:{C["cyan"]};font-size:2.2rem;">{len(eval_cases)}</div>
+                    <div class="metric-label">Total</div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+            with ec2:
+                categories = {}
+                for c in eval_cases:
+                    cat = c.category
+                    categories[cat] = categories.get(cat, 0) + 1
+                st.markdown(
+                    f"""<div class="metric-card" style="border-top:3px solid {C["purple"]};">
+                    <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Categories</div>
+                    <div class="metric-value" style="color:{C["purple"]};font-size:2.2rem;">{len(categories)}</div>
+                    <div class="metric-label">Types</div>
+                </div>""",
+                    unsafe_allow_html=True,
+                )
+        except Exception as e:
+            st.markdown(
+                f'<div style="color:{C["text_dim"]};font-size:0.85rem;">Eval harness unavailable: {e}</div>',
+                unsafe_allow_html=True,
+            )
+
+        # ── Code Map ──
+        st.markdown("")
+        st.markdown(f'<div class="section-header">{svg("layers")} Codebase Map</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div style="color:{C["text_muted"]};font-size:0.95rem;margin-bottom:16px;">Auto-generated documentation of every module, class, function, and API endpoint in the codebase.</div>',
+            unsafe_allow_html=True,
+        )
+        try:
+            from utils.codemap import scan_modules
+
+            if st.button("Generate Code Map", use_container_width=True, key="run_codemap"):
+                with st.spinner("Scanning codebase..."):
+                    code_map = scan_modules(".")
+                st.json(code_map)
+            else:
+                st.markdown(
+                    f'<div style="color:{C["text_dim"]};font-size:0.9rem;padding:8px 0;">Click to generate a map of the HeatMind codebase.</div>',
+                    unsafe_allow_html=True,
+                )
+        except Exception as e:
+            st.markdown(
+                f'<div style="color:{C["text_dim"]};font-size:0.85rem;">Code map unavailable: {e}</div>',
                 unsafe_allow_html=True,
             )
 

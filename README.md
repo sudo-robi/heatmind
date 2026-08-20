@@ -56,9 +56,9 @@ The system is self-specifying: each agent reads its own markdown operating manua
 
 ---
 
-## How It Works: Six Agentic Patterns
+## How It Works: Nineteen Agentic Patterns
 
-HeatMind implements **six distinct agentic AI patterns** that compose into a single autonomous system:
+HeatMind implements **nineteen distinct agentic AI patterns** that compose into a single autonomous system:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -167,7 +167,79 @@ HeatMind implements **six distinct agentic AI patterns** that compose into a sin
 │  │  Below threshold → approval buttons in UI                       │   │
 │  │  Above threshold → auto-execute, log "trusted"                  │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
+│  │                              │                                          │
+│  │                              ▼                                          │
+│  │  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  │ PATTERN 11: SESSION PERSISTENCE                                 │   │
+│  │  │                                                                  │   │
+│  │  │  st.session_state across Streamlit reruns:                       │   │
+│  │  │    session_id · history · traces · checkpoints                  │   │
+│  │  └─────────────────────────────────────────────────────────────────┘   │
+│  │                              │                                          │
+│  │                              ▼                                          │
+│  │  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  │ PATTERN 12: CODEMAP AUTO-DOCS                                   │   │
+│  │  │                                                                  │   │
+│  │  │  Walk project → extract imports/classes/functions               │   │
+│  │  │  → dependency map → render markdown                             │   │
+│  │  └─────────────────────────────────────────────────────────────────┘   │
+│  │                              │                                          │
+│  │                              ▼                                          │
+│  │  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  │ PATTERN 13: DEFENSIVE HOOKS                                     │   │
+│  │  │                                                                  │   │
+│  │  │  Pre-execution safety:                                          │   │
+│  │  │    SQL injection · command injection · path traversal           │   │
+│  │  │    secret leakage · input + output scanning                     │   │
+│  │  └─────────────────────────────────────────────────────────────────┘   │
+│  │                              │                                          │
+│  │                              ▼                                          │
+│  │  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  │ PATTERN 14: SELF-SPECIFYING AGENTS                              │   │
+│  │  │                                                                  │   │
+│  │  │  agents/specs/*.md — roles as documents, not code               │   │
+│  │  └─────────────────────────────────────────────────────────────────┘   │
+│  │                              │                                          │
+│  │                              ▼                                          │
+│  │  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  │ PATTERN 15: REFLECTIVE ReAct WITH EVIDENCE SUFFICIENCY         │   │
+│  │  │                                                                  │   │
+│  │  │  Bounded loop: plan → tool → observe → reflect → enough?       │   │
+│  │  │  Max 2 rounds · graceful degradation on failure                 │   │
+│  │  └─────────────────────────────────────────────────────────────────┘   │
+│  │                              │                                          │
+│  │                              ▼                                          │
+│  │  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  │ PATTERN 16: MULTI-AGENT HANDOFF CHAIN                           │   │
+│  │  │                                                                  │   │
+│  │  │  Coordinator → Emergency Coordinator → Public Alert             │   │
+│  │  │  Traced communication · cost attribution                        │   │
+│  │  └─────────────────────────────────────────────────────────────────┘   │
+│  │                              │                                          │
+│  │                              ▼                                          │
+│  │  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  │ PATTERN 17: EVENT-DRIVEN RULE ENGINE                            │   │
+│  │  │                                                                  │   │
+│  │  │  Condition evaluation on every monitor check                    │   │
+│  │  │  Togglable rules · threshold-based triggers                     │   │
+│  │  └─────────────────────────────────────────────────────────────────┘   │
+│  │                              │                                          │
+│  │                              ▼                                          │
+│  │  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  │ PATTERN 18: COST LEDGER + BUDGET ROUTING                       │   │
+│  │  │                                                                  │   │
+│  │  │  Per-call USD tracking · budget-gated tier selection            │   │
+│  │  │  plan → fast · reflect → balanced · synthesize → deep          │   │
+│  │  └─────────────────────────────────────────────────────────────────┘   │
+│  │                              │                                          │
+│  │                              ▼                                          │
+│  │  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  │ PATTERN 19: CONTINUOUS LEARNING                                 │   │
+│  │  │                                                                  │   │
+│  │  │  Pattern extraction per analysis                                │   │
+│  │  │  Injected into planning · feedback-driven quality               │   │
+│  │  └─────────────────────────────────────────────────────────────────┘   │
+│  │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -356,6 +428,16 @@ Every autonomous decision is logged to MongoDB with:
 | `outcome` | completed / error / fallback |
 | `timestamp` | When the decision was made |
 
+### Production Infrastructure
+
+Three new modules add production-grade safety, documentation, and state management:
+
+| Module | Purpose |
+|---|---|
+| `utils/session_persist` | Persists agent session state across Streamlit reruns using `st.session_state` — session ID, history, traces, checkpoints survive page refreshes |
+| `utils/codemap` | Auto-generates structured documentation by walking the project tree, extracting imports/classes/functions, building dependency maps, and rendering as markdown |
+| `utils/defensive_hooks` | Pre-execution safety hooks that block SQL injection, command injection, path traversal, and secret leakage before tool execution; post-execution checks detect secret leaks in responses |
+
 ---
 
 ## Track 06 Alignment: Agentic AI Criteria
@@ -371,6 +453,9 @@ Every autonomous decision is logged to MongoDB with:
 | **Graceful degradation** | Falls back to ChainAgent (deterministic) when LLM is unavailable; falls back to demo data when API is unavailable. |
 | **Production-ready** | 600+ tests, 90%+ coverage, Docker, CI/CD, MongoDB, multi-channel alerts. |
 | **MCP integration** | Exposes 5 tools via Model Context Protocol — composable with any AI agent ecosystem. |
+| **Session persistence** | `utils/session_persist` maintains state across Streamlit reruns without external storage. |
+| **Auto-documentation** | `utils/codemap` generates structured docs from codebase structure — always in sync. |
+| **Pre-execution safety** | `utils/defensive_hooks` blocks SQL injection, command injection, path traversal, and secret leakage before tool execution. |
 
 ---
 
