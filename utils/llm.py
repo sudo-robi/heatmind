@@ -457,13 +457,29 @@ def extract_json(text: str) -> dict:
 def safe_complete(
     provider: LLMProvider, system: str, user: str, max_tokens: int = 800, temperature: float = 0.2
 ) -> str:
-    """Complete with a short timeout guard; Mock never fails."""
+    """Complete with circuit breaker protection; Mock never fails."""
     if isinstance(provider, MockLLM):
         return provider.complete(system, user, max_tokens, temperature)
     try:
-        return provider.complete(system, user, max_tokens, temperature)
+        from utils.agent_circuit_breaker import get_circuit_breaker
+
+        cb = get_circuit_breaker(provider.name)
+        if not cb.allow_request():
+            raise LLMError(f"Circuit breaker OPEN for {provider.name} — request blocked")
+        text = provider.complete(system, user, max_tokens, temperature)
+        cb.record_success()
+        return text
+    except LLMError:
+        raise
     except Exception as e:
         logger.warning("LLM call failed: %s", type(e).__name__)
+        try:
+            from utils.agent_circuit_breaker import get_circuit_breaker
+
+            cb = get_circuit_breaker(provider.name)
+            cb.record_failure()
+        except Exception:
+            pass
         raise LLMError(str(e)) from e
 
 

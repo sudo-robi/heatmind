@@ -1425,6 +1425,41 @@ def main():
                     unsafe_allow_html=True,
                 )
 
+        # ── LLM Health (Circuit Breaker Status) ──
+        st.markdown("")
+        st.markdown(f'<div class="section-header">{svg("heart")} LLM Health</div>', unsafe_allow_html=True)
+        try:
+            from utils.agent_circuit_breaker import all_breakers_status
+
+            breakers = all_breakers_status()
+            if breakers:
+                for b in breakers:
+                    state = b["state"]
+                    state_color = C["green"] if state == "closed" else C["yellow"] if state == "half_open" else C["red"]
+                    state_label = "Healthy" if state == "closed" else "Testing" if state == "half_open" else "Blocked"
+                    st.markdown(
+                        f"""<div class="zone-card" style="border-left:3px solid {state_color};margin-bottom:6px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <div>
+                                <span style="font-weight:700;color:{C["text"]};font-size:0.92rem;">{b["provider"]}</span>
+                                <span style="color:{C["text_dim"]};font-size:0.82rem;"> · {b["failures"]} failures / {b["successes"]} successes</span>
+                            </div>
+                            <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:{state_color}20;border:1px solid {state_color}40;border-radius:6px;color:{state_color};font-weight:700;font-size:0.78rem;">● {state_label}</span>
+                        </div>
+                    </div>""",
+                        unsafe_allow_html=True,
+                    )
+            else:
+                st.markdown(
+                    f'<div style="color:{C["text_dim"]};font-size:0.9rem;padding:8px 0;">No circuit breakers active — providers not yet called this session.</div>',
+                    unsafe_allow_html=True,
+                )
+        except Exception as e:
+            st.markdown(
+                f'<div style="color:{C["text_dim"]};font-size:0.85rem;">Health data unavailable: {e}</div>',
+                unsafe_allow_html=True,
+            )
+
         st.markdown("")
         st.markdown(f'<div class="section-header">{svg("coins")} Cost Intelligence</div>', unsafe_allow_html=True)
         st.markdown(
