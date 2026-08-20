@@ -49,6 +49,17 @@ SVG = {
     "siren": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18v.6A6 6 0 0 0 13 24h1a6 6 0 0 0 6-6v-3"/><circle cx="12" cy="12" r="4"/><path d="M12 12h.01"/></svg>',
     "sparkles": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>',
     "alert": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+    "coins": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></svg>',
+    "handshake": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/></svg>',
+    "clock": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    "timer": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/></svg>',
+    "plug": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></svg>',
+    "error": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>',
+    "warning": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+    "ticket": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>',
+    "smile": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg>',
+    "meh": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" x2="16" y1="15" y2="15"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg>',
+    "frown": '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg>',
 }
 
 C = {
@@ -75,7 +86,10 @@ C = {
 }
 
 st.set_page_config(
-    page_title="HeatMind — Heat Intelligence System", page_icon="🔥", layout="wide", initial_sidebar_state="expanded"
+    page_title="HeatMind — Heat Intelligence System",
+    page_icon=":material/local_fire_department:",
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
 
 st.markdown(
@@ -182,8 +196,12 @@ hr {{ border-color:{C["border"]}; opacity:0.5; }}
 )
 
 
-def svg(name):
-    return SVG.get(name, "")
+def svg(name, size=None):
+    icon = SVG.get(name, "")
+    if size and icon:
+        icon = icon.replace('width="24" height="24"', f'width="{size}" height="{size}"')
+        icon = icon.replace('width="16" height="16"', f'width="{size}" height="{size}"')
+    return icon
 
 
 def render_hero():
@@ -214,13 +232,13 @@ def render_hero():
 
 
 STAGES = [
-    {"key": "classifying", "emoji": "🔍", "color": C["cyan"], "text": "Classifying query type..."},
-    {"key": "routing", "emoji": "🎯", "color": C["purple"], "text": "Routing to optimal agent..."},
-    {"key": "analyzing", "emoji": "🧠", "color": C["accent"], "text": "Analyzing heat data..."},
-    {"key": "processing", "emoji": "⚡", "color": C["orange"], "text": "Processing with AI model..."},
-    {"key": "sentiment", "emoji": "💬", "color": C["cyan"], "text": "Analyzing response..."},
-    {"key": "complete", "emoji": "✅", "color": C["green"], "text": "Response ready"},
-    {"key": "escalating", "emoji": "🚨", "color": C["red"], "text": "Escalating to human agent..."},
+    {"key": "classifying", "icon": "search", "color": C["cyan"], "text": "Classifying query type..."},
+    {"key": "routing", "icon": "target", "color": C["purple"], "text": "Routing to optimal agent..."},
+    {"key": "analyzing", "icon": "brain", "color": C["accent"], "text": "Analyzing heat data..."},
+    {"key": "processing", "icon": "zap", "color": C["orange"], "text": "Processing with AI model..."},
+    {"key": "sentiment", "icon": "chat", "color": C["cyan"], "text": "Analyzing response..."},
+    {"key": "complete", "icon": "check", "color": C["green"], "text": "Response ready"},
+    {"key": "escalating", "icon": "siren", "color": C["red"], "text": "Escalating to human agent..."},
 ]
 
 
@@ -229,7 +247,7 @@ def render_processing_status(active_key):
     for s in STAGES:
         active = "active" if s["key"] == active_key else ""
         opacity = "1" if s["key"] == active_key else "0.35"
-        html += f'<span class="pipeline-stage {active}" style="background:{s["color"]}20;color:{s["color"]};border:1px solid {s["color"]}40;opacity:{opacity};">{s["emoji"]} {s["key"].title()}</span>'
+        html += f'<span class="pipeline-stage {active}" style="background:{s["color"]}20;color:{s["color"]};border:1px solid {s["color"]}40;opacity:{opacity};">{svg(s["icon"], 14)} {s["key"].title()}</span>'
     html += "</div>"
     st.markdown(html, unsafe_allow_html=True)
 
@@ -244,25 +262,28 @@ def cycling_processing(placeholder, escalate=False):
             render_processing_status(k)
             info = next((s for s in STAGES if s["key"] == k), None)
             if info:
-                st.caption(f"{info['emoji']} {info['text']}")
+                st.markdown(
+                    f'<span style="display:inline-flex;align-items:center;gap:6px;color:{info["color"]};font-weight:600;">{svg(info["icon"], 14)} {info["text"]}</span>',
+                    unsafe_allow_html=True,
+                )
 
 
 def get_sentiment(score):
     if score is None:
-        return "😐", "neutral", C["text_muted"]
+        return "meh", "neutral", C["text_muted"]
     if score > 0.5:
-        return "😊", "very positive", C["green"]
+        return "smile", "very positive", C["green"]
     if score > 0.2:
-        return "🙂", "positive", C["green"]
+        return "smile", "positive", C["green"]
     if score > 0.05:
-        return "😐", "slightly positive", C["cyan"]
+        return "meh", "slightly positive", C["cyan"]
     if score < -0.5:
-        return "😠", "very negative", C["red"]
+        return "frown", "very negative", C["red"]
     if score < -0.2:
-        return "😕", "negative", C["orange"]
+        return "frown", "negative", C["orange"]
     if score < -0.05:
-        return "😐", "slightly negative", C["yellow"]
-    return "😐", "neutral", C["text_muted"]
+        return "meh", "slightly negative", C["yellow"]
+    return "meh", "neutral", C["text_muted"]
 
 
 def render_msg_metadata(msg):
@@ -270,9 +291,9 @@ def render_msg_metadata(msg):
     with cols[0]:
         s = msg.get("sentiment_score")
         if s is not None:
-            e, l, c = get_sentiment(s)
+            icon, lbl, c = get_sentiment(s)
             st.markdown(
-                f'<div class="sentiment-pill" style="background:{c}15;color:{c};border:1px solid {c}40;">{e} {l} ({s:.2f})</div>',
+                f'<div class="sentiment-pill" style="background:{c}15;color:{c};border:1px solid {c}40;">{svg(icon, 14)} {lbl} ({s:.2f})</div>',
                 unsafe_allow_html=True,
             )
         else:
@@ -292,7 +313,7 @@ def render_msg_metadata(msg):
         if rt is not None:
             tc = C["green"] if rt < 500 else C["yellow"] if rt < 2000 else C["red"]
             st.markdown(
-                f'<div class="sentiment-pill" style="background:{tc}15;color:{tc};border:1px solid {tc}40;">⏱ {rt:.0f}ms</div>',
+                f'<div class="sentiment-pill" style="background:{tc}15;color:{tc};border:1px solid {tc}40;">{svg("timer", 14)} {rt:.0f}ms</div>',
                 unsafe_allow_html=True,
             )
         else:
@@ -329,7 +350,7 @@ def render_cost_badge(msg):
     llm_calls = cost.get("llm_calls", 0) if isinstance(cost, dict) else 0
     tool_calls = cost.get("tool_calls", 0) if isinstance(cost, dict) else 0
     st.markdown(
-        f'<div class="sentiment-pill" style="background:{C["cyan"]}15;color:{C["cyan"]};border:1px solid {C["cyan"]}40;">💸 ${usd:.4f} · {llm_calls} LLM + {tool_calls} API</div>',
+        f'<div class="sentiment-pill" style="background:{C["cyan"]}15;color:{C["cyan"]};border:1px solid {C["cyan"]}40;">{svg("coins", 14)} ${usd:.4f} · {llm_calls} LLM + {tool_calls} API</div>',
         unsafe_allow_html=True,
     )
 
@@ -341,7 +362,7 @@ def render_delegation_badge(msg):
         return
     names = " → ".join(d.get("agent", "?") for d in deps)
     st.markdown(
-        f'<div class="sentiment-pill" style="background:{C["purple"]}15;color:{C["purple"]};border:1px solid {C["purple"]}40;">🤝 Handoff: {names}</div>',
+        f'<div class="sentiment-pill" style="background:{C["purple"]}15;color:{C["purple"]};border:1px solid {C["purple"]}40;">{svg("handshake", 14)} Handoff: {names}</div>',
         unsafe_allow_html=True,
     )
 
@@ -371,10 +392,16 @@ def render_reasoning_trace(msg):
     trace = msg.get("reasoning")
     if not trace:
         return
-    with st.expander(f"🧠 Agent Reasoning Trace ({len(trace)} steps)", expanded=False):
+    with st.expander(f"Agent Reasoning Trace ({len(trace)} steps)", expanded=False):
         for step in trace:
             status = step.get("status", "pending")
-            icon = "✅" if status == "success" else "⚠️" if status in ("error", "skipped") else "⏳"
+            icon = (
+                svg("check", 14)
+                if status == "success"
+                else svg("warning", 14)
+                if status in ("error", "skipped")
+                else svg("clock", 14)
+            )
             color = C["green"] if status == "success" else C["yellow"] if status == "skipped" else C["red"]
             st.markdown(
                 f"""<div style="border-left:3px solid {color};padding:8px 12px;margin:6px 0;background:{C["surface"]};border-radius:0 8px 8px 0;">
@@ -404,14 +431,14 @@ def render_message_map(msg):
         heat_index=map_data.get("heat_index"),
     )
     if deck is not None:
-        with st.expander("🗺️ Live Thermal Map", expanded=False):
+        with st.expander("Live Thermal Map", expanded=False):
             st.pydeck_chart(deck)
 
 
 def display_error(error_type, message, context=""):
     configs = {
         "CONNECTION_ERROR": {
-            "icon": "🔌",
+            "icon": "plug",
             "title": "Connection Error",
             "color": C["red"],
             "steps": [
@@ -422,13 +449,13 @@ def display_error(error_type, message, context=""):
             ],
         },
         "TIMEOUT_ERROR": {
-            "icon": "⏱",
+            "icon": "timer",
             "title": "Timeout Error",
             "color": C["yellow"],
             "steps": ["Request took too long", "Server may be under load", "Try a simpler query", "Try again"],
         },
         "API_ERROR": {
-            "icon": "⚠",
+            "icon": "warning",
             "title": "API Error",
             "color": C["orange"],
             "steps": ["API returned error", "Check API key config", "Verify endpoint", "Contact support"],
@@ -436,10 +463,10 @@ def display_error(error_type, message, context=""):
     }
     cfg = configs.get(
         error_type,
-        {"icon": "❌", "title": "Error", "color": C["red"], "steps": ["Unexpected error", "Please try again"]},
+        {"icon": "error", "title": "Error", "color": C["red"], "steps": ["Unexpected error", "Please try again"]},
     )
     st.markdown(
-        f'<div class="error-box" style="border-left:3px solid {cfg["color"]};"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:1.2rem;">{cfg["icon"]}</span><strong style="color:{cfg["color"]};">{cfg["title"]}</strong></div><div style="color:{C["text_muted"]};font-size:0.9rem;">{message}</div></div>',
+        f'<div class="error-box" style="border-left:3px solid {cfg["color"]};"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="display:inline-flex;align-items:center;">{svg(cfg["icon"], 20)}</span><strong style="color:{cfg["color"]};">{cfg["title"]}</strong></div><div style="color:{C["text_muted"]};font-size:0.9rem;">{message}</div></div>',
         unsafe_allow_html=True,
     )
     with st.expander("Troubleshooting Steps"):
@@ -466,7 +493,7 @@ def render_escalation_panel():
     )
     for i, msg in enumerate(reversed(escalated)):
         with st.expander(
-            f"🎫 Ticket #{i + 1}: {msg.get('escalation_reason', 'Unknown')} — {msg.get('ticket_id', 'N/A')[:8]}..."
+            f"Ticket #{i + 1}: {msg.get('escalation_reason', 'Unknown')} — {msg.get('ticket_id', 'N/A')[:8]}..."
         ):
             st.markdown(
                 f"**Ticket ID:** `{msg.get('ticket_id', 'N/A')}`\n**Reason:** {msg.get('escalation_reason', 'Unknown')}\n**Query:** {msg.get('content', '')[:150]}..."
@@ -731,13 +758,13 @@ def render_live_api_metrics():
             ss = [m["sentiment_score"] for m in am if m.get("sentiment_score") is not None]
             avg_s = sum(ss) / len(ss) if ss else 0
             if avg_s > 0.2:
-                emoji, lbl, mc = "😊", "Positive", C["green"]
+                icon, lbl, mc = "smile", "Positive", C["green"]
             elif avg_s < -0.2:
-                emoji, lbl, mc = "😠", "Negative", C["red"]
+                icon, lbl, mc = "frown", "Negative", C["red"]
             else:
-                emoji, lbl, mc = "😐", "Neutral", C["text_muted"]
+                icon, lbl, mc = "meh", "Neutral", C["text_muted"]
             st.markdown(
-                f'<div class="metric-card" style="border-left:3px solid {mc};"><div class="metric-value" style="color:{mc};font-size:1.6rem;">{emoji} {avg_s:.2f}</div><div class="metric-label">{lbl} Sentiment</div></div>',
+                f'<div class="metric-card" style="border-left:3px solid {mc};"><div class="metric-value" style="color:{mc};font-size:1.6rem;">{svg(icon, 22)} {avg_s:.2f}</div><div class="metric-label">{lbl} Sentiment</div></div>',
                 unsafe_allow_html=True,
             )
         a3, a4 = st.columns(2)
@@ -774,7 +801,7 @@ def main():
         st.markdown(
             f"""<div style="text-align:center;margin-bottom:20px;padding:16px 0;background:linear-gradient(180deg,{C["surface"]} 0%,{C["bg"]} 100%);border-radius:12px;">
             <div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-bottom:6px;">
-                <span style="color:{C["red"]};font-size:1.6rem;filter:drop-shadow(0 0 6px {C["red"]}60);">🔥</span>
+                <span style="color:{C["red"]};display:inline-flex;filter:drop-shadow(0 0 6px {C["red"]}60);">{svg("fire", 28)}</span>
                 <span style="font-size:1.6rem;font-weight:800;color:{C["text"]};letter-spacing:-0.5px;">HeatMind</span>
             </div>
             <div style="font-size:0.88rem;color:{C["text_muted"]};font-weight:600;">Heat Intelligence System</div>
@@ -933,25 +960,46 @@ def main():
             if escalate:
                 with status_area.container():
                     render_processing_status("classifying")
-                    st.caption("🔍 Classifying query type...")
+                    st.markdown(
+                        f'<span style="display:inline-flex;align-items:center;gap:6px;color:{C["cyan"]};font-weight:600;">{svg("search", 14)} Classifying query type...</span>',
+                        unsafe_allow_html=True,
+                    )
                 with status_area.container():
                     render_processing_status("routing")
-                    st.caption("🎯 Routing to optimal agent...")
+                    st.markdown(
+                        f'<span style="display:inline-flex;align-items:center;gap:6px;color:{C["purple"]};font-weight:600;">{svg("target", 14)} Routing to optimal agent...</span>',
+                        unsafe_allow_html=True,
+                    )
                 with status_area.container():
                     render_processing_status("analyzing")
-                    st.caption("🧠 Analyzing heat data...")
+                    st.markdown(
+                        f'<span style="display:inline-flex;align-items:center;gap:6px;color:{C["accent"]};font-weight:600;">{svg("brain", 14)} Analyzing heat data...</span>',
+                        unsafe_allow_html=True,
+                    )
                 with status_area.container():
                     render_processing_status("processing")
-                    st.caption("⚡ Processing with AI model...")
+                    st.markdown(
+                        f'<span style="display:inline-flex;align-items:center;gap:6px;color:{C["orange"]};font-weight:600;">{svg("zap", 14)} Processing with AI model...</span>',
+                        unsafe_allow_html=True,
+                    )
                 with status_area.container():
                     render_processing_status("sentiment")
-                    st.caption("💬 Analyzing response...")
+                    st.markdown(
+                        f'<span style="display:inline-flex;align-items:center;gap:6px;color:{C["cyan"]};font-weight:600;">{svg("chat", 14)} Analyzing response...</span>',
+                        unsafe_allow_html=True,
+                    )
                 with status_area.container():
                     render_processing_status("escalating")
-                    st.caption("🚨 Escalating to human agent...")
+                    st.markdown(
+                        f'<span style="display:inline-flex;align-items:center;gap:6px;color:{C["red"]};font-weight:600;">{svg("siren", 14)} Escalating to human agent...</span>',
+                        unsafe_allow_html=True,
+                    )
                 with status_area.container():
                     render_processing_status("complete")
-                    st.caption("✅ Response ready")
+                    st.markdown(
+                        f'<span style="display:inline-flex;align-items:center;gap:6px;color:{C["green"]};font-weight:600;">{svg("check", 14)} Response ready</span>',
+                        unsafe_allow_html=True,
+                    )
                 status_area.empty()
                 result = handle_query(prompt)
                 result["agent"] = "emergency"
@@ -1284,7 +1332,7 @@ def main():
     st.markdown(
         f"""<div style="text-align:center;padding:24px 0 8px 0;border-top:1px solid {C["border"]};margin-top:32px;">
         <div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-bottom:6px;">
-            <span style="color:{C["red"]};font-size:1rem;">🔥</span>
+            <span style="color:{C["red"]};display:inline-flex;">{svg("fire", 18)}</span>
             <span style="font-size:1rem;font-weight:800;color:{C["text"]};letter-spacing:-0.3px;">HeatMind</span>
         </div>
         <div style="color:{C["text_dim"]};font-size:0.82rem;font-weight:500;">
