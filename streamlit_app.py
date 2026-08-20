@@ -377,7 +377,7 @@ def render_llm_badge(msg):
         label = "Deterministic Fallback"
     elif mode == "mock":
         color = C["cyan"]
-        label = "LLM Ready (mock)"
+        label = "LLM · Ready"
     else:
         color = C["purple"]
         label = f"LLM · {mode}"
@@ -392,7 +392,9 @@ def render_reasoning_trace(msg):
     trace = msg.get("reasoning")
     if not trace:
         return
-    with st.expander(f"Agent Reasoning Trace ({len(trace)} steps)", expanded=False):
+    with st.expander(
+        f"{svg('brain', 14)} Agent Reasoning Trace — {len(trace)} step{'s' if len(trace) != 1 else ''}", expanded=False
+    ):
         for step in trace:
             status = step.get("status", "pending")
             icon = (
@@ -911,7 +913,7 @@ def main():
             )
         else:
             st.markdown(
-                f'<div style="display:flex;align-items:center;gap:6px;color:{C["yellow"]};font-size:0.9rem;font-weight:700;">{svg("alert")} Demo Mode — No API Key</div>',
+                f'<div style="display:flex;align-items:center;gap:6px;color:{C["yellow"]};font-size:0.9rem;font-weight:700;">{svg("alert")} Standalone Mode</div>',
                 unsafe_allow_html=True,
             )
         with st.expander("Backend Health"):
@@ -920,6 +922,12 @@ def main():
             i = svg("check") if ok else svg("alert")
             st.markdown(
                 f'<div style="display:flex;align-items:center;gap:6px;color:{ic};font-weight:600;">{i} {msg}</div>',
+                unsafe_allow_html=True,
+            )
+            api_status_color = C["green"] if FORTYGUARD_API_KEY else C["yellow"]
+            api_status_text = "Connected" if FORTYGUARD_API_KEY else "Not configured"
+            st.markdown(
+                f'<div style="display:flex;align-items:center;gap:6px;color:{api_status_color};font-weight:600;font-size:0.85rem;margin-top:6px;">{svg("plug", 14)} FortyGuard API: {api_status_text}</div>',
                 unsafe_allow_html=True,
             )
             if not ok and st.button("Retry", key="retry_health"):
@@ -933,6 +941,13 @@ def main():
     tab_chat, tab_dashboard, tab_history, tab_monitor = st.tabs(["Chat", "Dashboard", "History", "Monitor"])
 
     with tab_chat:
+        st.markdown(
+            f"""<div style="background:{C["surface"]};border:1px solid {C["border"]};border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+                <span style="color:{C["accent"]};display:inline-flex;">{svg("chat", 18)}</span>
+                <span style="color:{C["text_muted"]};font-size:0.9rem;font-weight:500;">Ask about heat conditions in any city — e.g. <em>"What's the heat index in Dubai?"</em> or <em>"Is it safe to exercise in Phoenix?"</em></span>
+            </div>""",
+            unsafe_allow_html=True,
+        )
         render_escalation_panel()
         for msg in st.session_state.messages:
             with st.chat_message(msg["role"]):
@@ -1214,6 +1229,48 @@ def main():
             st.caption("Install pydeck (`pip install pydeck`) to enable the live zone map.")
 
         st.markdown("")
+        st.markdown(f'<div class="section-header">{svg("siren")} Emergency Drill</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div style="color:{C["text_muted"]};font-size:0.95rem;margin-bottom:12px;">Simulate a critical heat emergency in Phoenix, AZ. The system will autonomously detect, escalate, and generate recommendations.</div>',
+            unsafe_allow_html=True,
+        )
+        if st.button("Run Simulated Emergency Drill", key="drill", use_container_width=True, type="primary"):
+            from agents.emergency_agent import EmergencyAgent
+            from utils.demo import demo_env_params
+
+            with st.spinner("Running autonomous emergency drill..."):
+                drill_zone = "Phoenix, AZ"
+                drill = EmergencyAgent(memory=st.session_state.memory)
+                result = drill.handle(
+                    query="Emergency detected in Phoenix — extreme heat conditions",
+                    session_id=st.session_state.session_id,
+                    params={
+                        "latitude": 33.4484,
+                        "longitude": -112.0740,
+                        "date": datetime.now().strftime("%Y-%m-%d"),
+                        "zone": drill_zone,
+                        "temperature": demo_env_params(33.4484, -112.0740).get("heat_index_celsius", 46.0),
+                    },
+                )
+            if "error" in result:
+                st.error(result["error"])
+            else:
+                st.markdown(
+                    f"""<div class="alert-card">
+                        <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:1.1rem;">{svg("siren")} {drill_zone} — Drill Complete</div>
+                        <div style="margin-top:8px;opacity:0.95;">Severity: <strong>{result.get("severity", "unknown").upper()}</strong> · LLM mode: <strong>{result.get("llm_mode", "n/a")}</strong></div>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+                st.markdown(result.get("response", ""))
+                if result.get("recommendations"):
+                    st.markdown("**Generated Recommendations:**")
+                    for i, rec in enumerate(result["recommendations"], 1):
+                        st.markdown(f"{i}. {rec}")
+                with st.expander("Drill Alert Payload", expanded=False):
+                    st.json(result.get("raw_data", {}))
+
+        st.markdown("")
         st.markdown(f'<div class="section-header">{svg("alert")} Alert Feed</div>', unsafe_allow_html=True)
         alert_zones = [z for z in zones if z["status"] == "alert"]
         if not alert_zones:
@@ -1291,41 +1348,155 @@ def main():
                     unsafe_allow_html=True,
                 )
 
-    if st.button("Run Simulated Emergency Drill", key="drill", use_container_width=True):
-        from agents.emergency_agent import EmergencyAgent
-        from utils.demo import demo_env_params
+        st.markdown("")
+        st.markdown(f'<div class="section-header">{svg("coins")} Cost Intelligence</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div style="color:{C["text_muted"]};font-size:0.95rem;margin-bottom:16px;">Cost-aware AI: apply machine intelligence only where it genuinely solves the problem, balanced against cost.</div>',
+            unsafe_allow_html=True,
+        )
 
-        with st.spinner("Running autonomous emergency drill..."):
-            drill_zone = "Phoenix, AZ"
-            drill = EmergencyAgent(memory=st.session_state.memory)
-            result = drill.handle(
-                query="Emergency detected in Phoenix — extreme heat conditions",
-                session_id=st.session_state.session_id,
-                params={
-                    "latitude": 33.4484,
-                    "longitude": -112.0740,
-                    "date": datetime.now().strftime("%Y-%m-%d"),
-                    "zone": drill_zone,
-                    "temperature": demo_env_params(33.4484, -112.0740).get("heat_index_celsius", 46.0),
-                },
-            )
-        if "error" in result:
-            st.error(result["error"])
-        else:
+        am_cost = [m for m in st.session_state.messages if m.get("role") == "assistant" and m.get("cost")]
+        total_cost = sum((m["cost"].get("usd") or 0) for m in am_cost if isinstance(m.get("cost"), dict))
+        total_llm = sum((m["cost"].get("llm_calls") or 0) for m in am_cost if isinstance(m.get("cost"), dict))
+        total_tool = sum((m["cost"].get("tool_calls") or 0) for m in am_cost if isinstance(m.get("cost"), dict))
+        query_count = max(st.session_state.query_count, 1)
+        avg_cost = total_cost / query_count if query_count else 0
+
+        sc1, sc2, sc3, sc4 = st.columns(4)
+        with sc1:
             st.markdown(
-                f"""<div class="alert-card">
-                    <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:1.1rem;">{svg("siren")} {drill_zone} — Drill Complete</div>
-                    <div style="margin-top:8px;opacity:0.95;">Severity: <strong>{result.get("severity", "unknown").upper()}</strong> · LLM mode: <strong>{result.get("llm_mode", "n/a")}</strong></div>
-                </div>""",
+                f"""<div class="metric-card" style="border-top:3px solid {C["cyan"]};">
+                <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">{svg("coins")} Session Cost</div>
+                <div class="metric-value" style="color:{C["cyan"]};font-size:2.2rem;">${total_cost:.4f}</div>
+                <div class="metric-label">Total USD</div>
+            </div>""",
                 unsafe_allow_html=True,
             )
-            st.markdown(result.get("response", ""))
-            if result.get("recommendations"):
-                st.markdown("**Generated Recommendations:**")
-                for i, rec in enumerate(result["recommendations"], 1):
-                    st.markdown(f"{i}. {rec}")
-            with st.expander("Drill Alert Payload", expanded=False):
-                st.json(result.get("raw_data", {}))
+        with sc2:
+            st.markdown(
+                f"""<div class="metric-card" style="border-top:3px solid {C["green"]};">
+                <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">{svg("target")} Avg / Query</div>
+                <div class="metric-value" style="color:{C["green"]};font-size:2.2rem;">${avg_cost:.4f}</div>
+                <div class="metric-label">Per Query</div>
+            </div>""",
+                unsafe_allow_html=True,
+            )
+        with sc3:
+            st.markdown(
+                f"""<div class="metric-card" style="border-top:3px solid {C["purple"]};">
+                <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">{svg("brain")} LLM Calls</div>
+                <div class="metric-value" style="color:{C["purple"]};font-size:2.2rem;">{total_llm}</div>
+                <div class="metric-label">AI Decisions</div>
+            </div>""",
+                unsafe_allow_html=True,
+            )
+        with sc4:
+            st.markdown(
+                f"""<div class="metric-card" style="border-top:3px solid {C["orange"]};">
+                <div style="font-size:0.78rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">{svg("plug")} API Calls</div>
+                <div class="metric-value" style="color:{C["orange"]};font-size:2.2rem;">{total_tool}</div>
+                <div class="metric-label">Tool Executions</div>
+            </div>""",
+                unsafe_allow_html=True,
+            )
+
+        naive_gpt4_per_query = 0.045
+        naive_total = naive_gpt4_per_query * st.session_state.query_count
+        savings = naive_total - total_cost
+        savings_pct = (savings / naive_total * 100) if naive_total > 0 else 0
+
+        cv1, cv2 = st.columns(2)
+        with cv1:
+            st.markdown(
+                f'<div class="section-header" style="font-size:1rem;border-bottom:none;margin-bottom:8px;">{svg("warning")} Cost vs Naive LLM Usage</div>',
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                f"""<div class="zone-card" style="border-left:3px solid {C["red"]};">
+                <div style="font-size:0.82rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Naive Approach (GPT-4 for all steps)</div>
+                <div style="font-size:1.6rem;font-weight:800;color:{C["red"]};font-family:'JetBrains Mono',monospace;">${naive_total:.4f}</div>
+                <div style="font-size:0.82rem;color:{C["text_muted"]};margin-top:4px;">${naive_gpt4_per_query}/query x {st.session_state.query_count} queries</div>
+            </div>""",
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                f"""<div class="zone-card" style="border-left:3px solid {C["green"]};">
+                <div style="font-size:0.82rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">HeatMind (cost-aware routing)</div>
+                <div style="font-size:1.6rem;font-weight:800;color:{C["green"]};font-family:'JetBrains Mono',monospace;">${total_cost:.4f}</div>
+                <div style="font-size:0.82rem;color:{C["text_muted"]};margin-top:4px;">Smart routing + tool optimization</div>
+            </div>""",
+                unsafe_allow_html=True,
+            )
+        with cv2:
+            st.markdown(
+                f'<div class="section-header" style="font-size:1rem;border-bottom:none;margin-bottom:8px;">{svg("target")} Savings Breakdown</div>',
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                f"""<div class="zone-card" style="border-left:3px solid {C["green"]};">
+                <div style="font-size:0.82rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Total Saved This Session</div>
+                <div style="font-size:1.6rem;font-weight:800;color:{C["green"]};font-family:'JetBrains Mono',monospace;">${savings:.4f}</div>
+                <div style="font-size:0.82rem;color:{C["green"]};margin-top:4px;">{savings_pct:.0f}% reduction vs naive</div>
+            </div>""",
+                unsafe_allow_html=True,
+            )
+            monthly_save = savings_pct / 100 * naive_gpt4_per_query * 1000 * 30
+            st.markdown(
+                f"""<div class="zone-card" style="border-left:3px solid {C["cyan"]};">
+                <div style="font-size:0.82rem;color:{C["text_dim"]};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">{svg("sparkles")} Monthly Projection (1K q/day)</div>
+                <div style="font-size:1.6rem;font-weight:800;color:{C["cyan"]};font-family:'JetBrains Mono',monospace;">${monthly_save:.2f}</div>
+                <div style="font-size:0.82rem;color:{C["text_muted"]};margin-top:4px;">Estimated monthly savings</div>
+            </div>""",
+                unsafe_allow_html=True,
+            )
+
+        st.markdown(
+            f'<div class="section-header" style="font-size:1rem;">{svg("layers")} Cost by Tool Type</div>',
+            unsafe_allow_html=True,
+        )
+        tool_costs = {
+            "env_params": 0.01,
+            "heatmap": 0.02,
+            "heat_intelligence": 0.03,
+            "satellite": 0.02,
+            "streetview": 0.01,
+            "alerts": 0.0,
+        }
+        max_tc = max(tool_costs.values())
+        for tool_name, cost_val in tool_costs.items():
+            bar_pct = (cost_val / max_tc * 100) if max_tc > 0 else 0
+            bar_color = C["green"] if cost_val <= 0.01 else C["yellow"] if cost_val <= 0.02 else C["orange"]
+            st.markdown(
+                f'<div style="margin:6px 0;"><div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="font-size:0.88rem;font-weight:600;color:{C["text"]};">{tool_name}</span><span style="font-size:0.82rem;font-weight:700;color:{bar_color};font-family:"JetBrains Mono",monospace;">${cost_val:.3f}</span></div><div style="height:6px;background:{C["border_light"]};border-radius:3px;overflow:hidden;"><div style="height:100%;width:{bar_pct}%;background:{bar_color};border-radius:3px;"></div></div></div>',
+                unsafe_allow_html=True,
+            )
+
+        st.markdown(
+            f'<div class="section-header" style="font-size:1rem;">{svg("zap")} Cost per Query Type</div>',
+            unsafe_allow_html=True,
+        )
+        query_type_costs = {
+            "Quick (simple lookup)": {"cost": 0.008, "color": C["green"], "desc": "env_params only, no LLM reasoning"},
+            "Deep (comprehensive)": {"cost": 0.025, "color": C["purple"], "desc": "heatmap + LLM analysis"},
+            "Emergency (escalated)": {"cost": 0.040, "color": C["red"], "desc": "full pipeline + escalation"},
+        }
+        for qtype, info in query_type_costs.items():
+            bar_pct = info["cost"] / 0.040 * 100
+            st.markdown(
+                f"""<div class="zone-card" style="border-left:3px solid {info["color"]};margin-bottom:6px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <div style="font-weight:700;color:{C["text"]};font-size:0.92rem;">{qtype}</div>
+                        <div style="font-size:0.8rem;color:{C["text_muted"]};margin-top:2px;">{info["desc"]}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:1.2rem;font-weight:800;color:{info["color"]};font-family:'JetBrains Mono',monospace;">${info["cost"]:.3f}</div>
+                        <div style="height:5px;width:80px;background:{C["border_light"]};border-radius:3px;overflow:hidden;margin-top:4px;"><div style="height:100%;width:{bar_pct}%;background:{info["color"]};border-radius:3px;"></div></div>
+                    </div>
+                </div>
+            </div>""",
+                unsafe_allow_html=True,
+            )
 
     # ── Footer ──
     st.markdown("")

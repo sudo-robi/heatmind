@@ -5,21 +5,14 @@
   ║                                                                ║
   ║     🔥🔥🔥    H E A T M I N D    🔥🔥🔥                       ║
   ║                                                                ║
-  ║     Multi-Agent Heat Intelligence System                       ║
-  ║     Powered by FortyGuard Temperature API                      ║
+  ║     Track 06: Agentic AI — FortyGuard Hackathon'26             ║
   ║                                                                ║
-  ║     "Autonomous monitoring. Intelligent alerts. Lives saved."  ║
+  ║     An autonomous multi-agent system that reasons about        ║
+  ║     heat risk, acts without human approval, and tracks         ║
+  ║     the cost of every decision.                                ║
   ║                                                                ║
   ╚══════════════════════════════════════════════════════════════════╝
 ```
-
-**Heat kills thousands every year. HeatMind stops it before it starts.**
-
-A conversational, autonomous heat monitoring and emergency response platform
-that routes queries to specialized AI agents, remembers context across sessions,
-and triggers multi-channel alerts when conditions become dangerous.
-
-**[Live Demo →](https://heatmind.streamlit.app)** | [GitHub Repo →](https://github.com/sudo-robi/heatmind)
 
 [![Python 3.14](https://img.shields.io/badge/Python-3.14-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![MongoDB](https://img.shields.io/badge/MongoDB-7-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://mongodb.com)
@@ -31,43 +24,174 @@ and triggers multi-channel alerts when conditions become dangerous.
 [![Coverage](https://img.shields.io/badge/Coverage-90%25-FFD600?style=for-the-badge)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-00BFA5?style=for-the-badge)](LICENSE)
 
+**[Live Demo →](https://heatmind.streamlit.app)** | [GitHub Repo →](https://github.com/sudo-robi/heatmind)
+
 ---
 
 </div>
 
-## Why HeatMind?
+## The Problem: Heat Kills in the Dark
 
-| Traditional Systems | HeatMind |
+**Extreme heat is the deadliest weather-related killer in Europe, claiming over 61,000 lives in the summer of 2022 alone** (Lancet, 2023). The ILO estimates **2.4% of global working hours are lost annually** to heat stress — the equivalent of 80 million full-time jobs. By 2030, heat-related productivity loss will cost the global economy **$2.4 trillion per year**.
+
+Yet most cities still monitor heat reactively: a dashboard shows raw temperature data, a human checks it, and a decision is made — often too late. Construction workers collapse before a warning is issued. Outdoor event attendees are already dehydrated by the time a report is filed. **The gap between detection and action costs lives.**
+
+Current solutions fail for three reasons:
+
+| Failure Mode | What Happens |
 |---|---|
-| ❌ No memory — each query starts fresh | ✅ **Session Memory** — remembers past events, decisions, outcomes |
-| ❌ No intelligence — raw numbers, no context | ✅ **AI Analysis** — risk assessment, severity levels, recommendations |
-| ❌ No autonomy — humans manually check dashboards | ✅ **Autonomous Response** — 24/7 monitoring, instant multi-channel alerts |
-| ❌ No integration — siloed data | ✅ **MCP Ready** — exposes tools to Claude, GPT, Gemini via Model Context Protocol |
+| **No reasoning** | Dashboards show numbers. No agent interprets what 48°C heat index means for outdoor workers in this specific zone. |
+| **No autonomy** | A human must notice the alert, decide severity, and manually trigger warnings. In a crisis, this is the bottleneck. |
+| **No accountability** | When an alert is issued (or missed), there is no audit trail. Which data was considered? What reasoning led to the decision? Why was the threshold not triggered? |
+
+**HeatMind solves all three.** It is an autonomous agent that reasons about heat risk, acts without human approval, and logs every decision with its cost.
 
 ---
 
-## Features
+## What HeatMind Does
 
-| Feature | Description |
-|:---|:---|
-| 🤖 **Agentic LLM Core** | Reflective ReAct loop: plan → tool-call → **observe → reflect → act** (OpenAI/Anthropic/Gemini/Ollama) with deterministic fallback |
-| 🧠 **Intelligent Query Routing** | Natural language queries classified by complexity and urgency, routed to the optimal agent |
-| 📜 **Self-Specifying Agents** | Every agent reads its own `agents/specs/*.md` operating manual (role, tools, decision rules) at runtime |
-| 🤝 **Sub-Agent Handoffs** | Coordinator delegates to specialist sub-agents (heat-analyst, emergency-coordinator, public-alert) with traced handoff messages |
-| 💸 **Cost-Aware Autonomy** | Every LLM + API call logged to a cost ledger; the agent prefers cheaper sufficient tool paths |
-| 🧾 **Reasoning Trace + Decision Audit** | Every answer ships an inspectable step-by-step reasoning chain; every decision logged with reasoning, cost, and delegations |
-| 🗺️ **Live Thermal Maps** | Interactive pydeck heat-risk maps rendered from real FortyGuard heatmap GeoJSON |
-| 🔄 **5 Agentic Patterns** | Session Memory, Query Router, Autonomous Monitor, Conversational Context, Emergency Response |
-| 🌐 **Dual Interface** | Full-featured CLI for developers + Streamlit GUI with real-time dashboard |
-| 🔔 **Multi-Channel Alerts** | Console, Slack, Email, Webhook — triggered autonomously when thresholds are exceeded |
-| 🗄️ **Persistent Memory** | MongoDB-backed session memory with UUID tracking, conversation history, and TTL expiration |
-| 🔌 **MCP Integration** | Exposes 5 MCP tools so external AI agents can query heat intelligence |
-| 📊 **Live Dashboard** | Agent distribution, response times, sentiment analysis, session history |
-| 🐳 **Docker Ready** | One command to launch the full stack (App + MongoDB) |
+HeatMind wraps the FortyGuard Temperature API in a **multi-agent reasoning system**. A coordinator agent reads a natural language query, plans which API tools to call, executes them, reflects on the evidence, and — if conditions are dangerous — delegates to specialist sub-agents that draft and dispatch emergency alerts **without waiting for human approval**.
+
+The system is self-specifying: each agent reads its own markdown operating manual at runtime, so roles and escalation policies are documents, not code. Every LLM call and API call is tracked in a **cost ledger** with estimated USD, and every autonomous decision is logged to a **decision audit trail** — making the economics and reasoning of autonomy fully transparent.
+
+---
+
+## How It Works: Five Agentic Patterns
+
+HeatMind implements **five distinct agentic AI patterns** that compose into a single autonomous system:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        HEATMIND AGENTIC STACK                           │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ PATTERN 1: SELF-SPECIFYING AGENTS                               │   │
+│  │                                                                  │   │
+│  │  agents/specs/coordinator.md  ──▶ LLM reads at runtime          │   │
+│  │  agents/specs/heat-analyst.md ──▶ defines role + tools + rules  │   │
+│  │  agents/specs/emergency-coordinator.md                          │   │
+│  │  agents/specs/public-alert.md                                   │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ PATTERN 2: REFLECTIVE ReAct LOOP                                │   │
+│  │                                                                  │   │
+│  │  Plan ──▶ Tool Calls ──▶ Observe ──▶ REFLECT ──▶ Synthesize    │   │
+│  │    ▲                        │              │                     │   │
+│  │    └── gather more ◀────────┘              └──▶ enough evidence │   │
+│  │         (bounded to 2 rounds)                                    │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ PATTERN 3: MULTI-AGENT HANDOFFS                                 │   │
+│  │                                                                  │   │
+│  │  Coordinator ──▶ Emergency Coordinator ──▶ Public Alert Agent   │   │
+│  │    (PLAN)            (DECIDE)                  (ALERT)           │   │
+│  │    "What's the       "Severity is EXTREME,   "Drafting alert    │   │
+│  │     heat risk?"      authorize alerts"       to all channels"   │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ PATTERN 4: COST-AWARE AUTONOMY                                  │   │
+│  │                                                                  │   │
+│  │  Cost Ledger:                                                   │   │
+│  │    env_params: $0.01  ◀── agent prefers this for simple queries │   │
+│  │    heatmap: $0.02                                              │   │
+│  │    heat_intelligence: $0.03                                     │   │
+│  │    LLM calls: tracked per phase (plan / reflect / synthesize)   │   │
+│  │    TOTAL per decision: visible in UI + audit log                │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                              │                                          │
+│                              ▼                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ PATTERN 5: DECISION AUDIT TRAIL                                 │   │
+│  │                                                                  │   │
+│  │  Every step logged to MongoDB:                                   │   │
+│  │    reasoning │ tool calls │ reflections │ delegations │ cost     │   │
+│  │    severity  │ LLM mode   │ outcome     │ timestamp  │ alert    │   │
+│  │                                                                  │   │
+│  │  Rendered as live timeline in Streamlit Monitor tab              │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Cost-Aware Autonomy: The Economics of Every Decision
+
+**This is what separates HeatMind from a chatbot wrapper.** Every autonomous decision carries a visible USD cost. The agent is *prompted to prefer cheaper sufficient tool paths* — it does not call the expensive `heat_intelligence` endpoint when `env_params` answers the question.
+
+### Cost Ledger Example
+
+A typical query — "What's the heat index in Dubai right now?" — costs:
+
+| Step | Operation | Cost (USD) |
+|---|---|---|
+| 1 | LLM plan phase | ~$0.0008 |
+| 2 | FortyGuard `env_params` call | $0.01 |
+| 3 | LLM reflect phase | ~$0.0005 |
+| 4 | LLM synthesize phase | ~$0.0012 |
+| **Total** | | **~$0.013** |
+
+A complex emergency drill — "Run a full heat risk assessment for Phoenix and alert if dangerous" — costs:
+
+| Step | Operation | Cost (USD) |
+|---|---|---|
+| 1 | LLM plan phase | ~$0.0008 |
+| 2 | `env_params` | $0.01 |
+| 3 | `heatmap` | $0.02 |
+| 4 | `heat_intelligence` | $0.03 |
+| 5 | LLM reflect phase (×2) | ~$0.001 |
+| 6 | Emergency Coordinator sub-agent | ~$0.002 |
+| 7 | Public Alert sub-agent | ~$0.002 |
+| 8 | LLM synthesize phase | ~$0.0015 |
+| **Total** | | **~$0.067** |
+
+**The agent chooses the $0.013 path for simple queries and the $0.067 path when the situation demands it.** This is cost-aware autonomy — not cost-blind automation.
+
+The Streamlit dashboard surfaces the full cost ledger so you can see exactly what every decision cost and why.
+
+---
+
+## Demo
+
+**Try it live: [heatmind.streamlit.app](https://heatmind.streamlit.app)**
+
+### Quick Test (30 seconds)
+
+1. Open the app
+2. Type: `What's the heat index in Dubai right now?`
+3. Watch the agent plan, call tools, reflect, and answer
+4. Click the **Monitor** tab to see the decision audit trail with cost breakdown
+
+### Emergency Scenario (2 minutes)
+
+1. Type: `Run a simulated emergency drill for Phoenix`
+2. Watch the coordinator plan → call multiple tools → reflect → delegate to Emergency Coordinator → delegate to Public Alert agent → dispatch alerts
+3. Open the **Monitor** tab to see the full autonomous chain: each sub-agent handoff, each reflection, each cost entry
+
+### CLI Demo
+
+```bash
+git clone https://github.com/sudo-robi/heatmind.git && cd heatmind
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env  # or set HEATMIND_DEMO_MODE=true
+python main.py
+```
+
+Set `HEATMIND_DEMO_MODE=true` in `.env` to run the full autonomous agent loop with synthetic data — no API or LLM key required.
 
 ---
 
 ## Architecture
+
+### System Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -75,11 +199,10 @@ and triggers multi-channel alerts when conditions become dangerous.
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
 │   ┌─────────────┐    ┌──────────────┐    ┌─────────────────────────┐  │
-│   │             │    │              │    │                         │  │
-│   │  CLI / GUI  │───▶│ Query Router │───▶│   LLM Agent (Agentic)   │  │
+│   │  CLI / GUI  │───▶│ Query Router │───▶│   LLMAgent (Agentic)    │  │
 │   │  (User)     │    │              │    │                         │  │
-│   │             │    │ • Complexity │    │  Plan → Tools → Observe  │  │
-│   └─────────────┘    │ • Urgency    │    │  → Synthesize → Act      │  │
+│   └─────────────┘    │ • Complexity │    │  Plan → Tools → Observe  │  │
+│                      │ • Urgency    │    │  → Reflect → Synthesize  │  │
 │                      │ • Confidence │    │                         │  │
 │                      └──────────────┘    │  ┌──────────┐           │  │
 │                                          │  │   LLM    │ ─────────┼──│──▶ OpenAI / Anthropic /
@@ -100,20 +223,11 @@ and triggers multi-channel alerts when conditions become dangerous.
 │                                          ┌─────────────────────┐      │
 │                                          │   Session Memory    │      │
 │                                          │   (MongoDB)         │      │
-│                                          │   • Conversations   │      │
-│                                          │   • Decisions       │      │
-│                                          │   • Events          │      │
-│                                          │   • Zone History    │      │
 │                                          └─────────────────────┘      │
 │                                                     │                  │
 │   ┌──────────────────────────────────────────────┐  │                  │
 │   │          FortyGuard Temperature API           │  │                  │
-│   │  ┌──────────┐ ┌──────────┐ ┌──────────┐     │  │                  │
-│   │  │ Heatmap  │ │Env Params│ │ Heat Intel│     │  │                  │
-│   │  └──────────┘ └──────────┘ └──────────┘     │  │                  │
-│   │  ┌──────────┐ ┌──────────┐                   │  │                  │
-│   │  │Satellite │ │Streetview│                   │  │                  │
-│   │  └──────────┘ └──────────┘                   │  │                  │
+│   │  env_params │ heatmap │ heat_intel │ satellite │ streetview       │  │
 │   └──────────────────────────────────────────────┘  │                  │
 │                                                     ▼                  │
 │                                          ┌─────────────────────┐      │
@@ -125,458 +239,195 @@ and triggers multi-channel alerts when conditions become dangerous.
 │                                                     │                  │
 │                                                     ▼                  │
 │   ┌───────────────────────────────────────────────────────────────┐   │
-│   │                      Alert System                             │   │
-│   │  Console │ Slack │ Webhook │ Email │ MCP Server               │   │
+│   │   Alert System: Console │ Slack │ Webhook │ Email │ MCP       │   │
 │   └───────────────────────────────────────────────────────────────┘   │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
----
+### Self-Specifying Agents
 
-## The Five Agentic Patterns
+Each agent reads its own markdown spec at runtime. The spec defines the agent's role, available tools, decision rules, and autonomy policy — in plain English that the LLM interprets:
 
-HeatMind demonstrates **five distinct agentic AI patterns**, each solving a specific challenge:
+| Spec File | Agent Role | Autonomy Level |
+|---|---|---|
+| `agents/specs/coordinator.md` | Lead — plans tool strategy, reflects, delegates | Full |
+| `agents/specs/heat-analyst.md` | Specialist — deep thermal/environmental correlation | Scoped |
+| `agents/specs/emergency-coordinator.md` | DECIDE phase — severity assessment, escalation | Scoped |
+| `agents/specs/public-alert.md` | ALERT phase — drafts + dispatches alerts | Scoped |
 
-### 1. Session Memory — Persistence
+**Why this matters:** Roles and escalation policies are documents, not hardcoded if-else trees. Changing the threshold from 38°C to 40°C is a markdown edit, not a code deploy.
 
-```
-┌─────────────────────────────────────────────────────┐
-│ Turn 1: "What's the heat in Dubai?"                 │
-│        → Stored: {location: Dubai, query: heat}     │
-├─────────────────────────────────────────────────────┤
-│ Turn 2: "What about Abu Dhabi?"                     │
-│        → Stored: {location: Abu Dhabi, query: heat} │
-├─────────────────────────────────────────────────────┤
-│ Turn 3: "Compare both cities"                       │
-│        → Recalled: Dubai + Abu Dhabi data           │
-├─────────────────────────────────────────────────────┤
-│ Turn 4: "Start monitoring both"                     │
-│        → Recalled: Both locations, started monitor  │
-└─────────────────────────────────────────────────────┘
-```
+### Reflective ReAct Loop
 
-MongoDB-backed session persistence with UUID tracking, conversation history, and TTL-based expiration.
-
-### 2. Query Router — Intelligent Routing
+The LLM core is not a single prompt — it is a bounded loop:
 
 ```
-"What's the temperature?"
-├── Complexity: SIMPLE (0.7 confidence)
-├── Urgency: LOW
-└── Route: Quick Agent → env_params endpoint
-
-"Give me a full heat risk assessment for Dubai"
-├── Complexity: COMPLEX (0.85 confidence)
-├── Urgency: MEDIUM
-└── Route: Deep Agent → env_params + heatmap + intel
-
-"EMERGENCY: Workers collapsing in Phoenix!"
-├── Complexity: MODERATE (0.9 confidence)
-├── Urgency: CRITICAL
-└── Route: Emergency Agent → alert + recommendations
-```
-
-Multi-factor classification (complexity × urgency) with confidence scoring. Simple queries use lightweight endpoints; complex queries trigger comprehensive analysis; critical queries bypass analysis and trigger immediate alerts.
-
-### 3. Autonomous Monitor — Scheduled Intelligence
-
-```
-┌──────────┐     ┌──────────┐     ┌──────────────────┐
-│  CronJob │────▶│  Check   │────▶│  Threshold       │
-│  (30min) │     │  Zones   │     │  Detection       │
-└──────────┘     └──────────┘     └────────┬─────────┘
-                                    ┌───────▼─────────┐
-                                    │ Emergency Agent  │
-                                    │ + Alert System   │
-                                    └─────────────────┘
-```
-
-Scheduled polling loop monitors configured zones, compares readings against thresholds, and triggers autonomous emergency responses.
-
-### 4. Conversational Context — Context Awareness
-
-```
-User: "What's the heat in Dubai?"
-Bot:  "Heat Index: 42C"
-[Stored: {location: Dubai, last_query: heat}]
-
-User: "What about tomorrow?"
-Bot:  [Recalled: Dubai location, queries tomorrow's data]
-[Stored: {date: tomorrow, last_query: forecast}]
-
-User: "Start monitoring this location"
-Bot:  [Recalled: Dubai coordinates, started monitor]
-```
-
-Per-session conversation history stored in MongoDB. Agents receive full conversation context, enabling multi-turn reasoning without re-explaining context.
-
-### 5. Emergency Response — Autonomous Action
-
-```
-Threshold Exceeded / LLM Assesses Danger
-    │
-    ▼
-┌──────────────────────┐
-│ Emergency Coordinator│  sub-agent reads agents/specs/emergency-coordinator.md
-│ (DECIDE)             │  → severity + escalation decision
-└──────────┬───────────┘
-           ▼
-┌──────────────────────┐
-│ Public Alert Agent   │  sub-agent reads agents/specs/public-alert.md
-│ (ALERT)              │  → drafts + dispatches alert
-└──────────┬───────────┘
-           ▼
-    ┌──────┴──────┐
-    │ Alert System│
-    └──────┬──────┘
-           ├──▶ Console Alert
-           ├──▶ Slack Notification
-           ├──▶ Webhook (Discord/Custom)
-           └──▶ Email Alert
-```
-
-The coordinator detects dangerous conditions (via the reflective loop), delegates to the Emergency Coordinator, which authorizes autonomous notification and the Public Alert agent drafts and dispatches alerts to all configured channels — **no human in the loop**.
-
----
-
-## The Autonomous Agent Stack (Track 06)
-
-HeatMind's Track 06 entry is a genuinely autonomous agentic system, not a single LLM call:
-
-### 1. Self-Specifying Agents
-
-Every agent is defined by a markdown spec (`agents/specs/*.md`) with YAML frontmatter — name, description, tools, autonomy level — plus decision rules. At runtime the agent **loads its own spec and the LLM reads it as its operating manual**, so roles, tool scopes, and escalation policy are documents, not code.
-
-| Spec | Role |
-|---|---|
-| `coordinator` | Lead agent — plans tool strategy, reflects, delegates |
-| `heat-analyst` | Deep thermal/environmental correlation on observations |
-| `emergency-coordinator` | Severity assessment + escalation decision (advisory/alert/evacuation) |
-| `public-alert` | Drafts + dispatches public alerts to all channels |
-
-### 2. Reflective ReAct Loop
-
-```
-Plan ──▶ Tool Calls ──▶ Observe ──▶ REFLECT ──▶ enough evidence? ──▶ Synthesize
+Plan ──▶ Tool Calls ──▶ Observe ──▶ REFLECT ──▶ enough evidence?
   ▲                        │              │
-  └────── gather more ─────┘              └──▶ SUFFICIENT → answer
+  └────── gather more ◀────┘              └──▶ SUFFICIENT → answer
+       (max 2 rounds)
 ```
 
-After each round of tool execution the LLM reflects on the observations and decides whether to gather more evidence (bounded to 2 rounds) or conclude. If a tool fails, the agent degrades gracefully to demo data rather than stranding the loop.
+After each tool execution round, the LLM inspects observations and decides: gather more evidence or conclude? If a tool fails, the agent degrades gracefully to demo data rather than crashing.
 
-### 3. Cost-Aware Autonomy
+### Sub-Agent Handoff Chain
 
-Track 06 judges prize *pragmatic, cost-aware AI*. HeatMind's cost ledger records the estimated USD of every LLM call and API call per decision, and the agent is prompted to prefer the cheapest sufficient tool path (`env_params` over `heatmap` + `heat_intelligence` for simple lookups). The Streamlit app surfaces the ledger so the economics of autonomy are visible.
-
-### 4. Decision Audit Trail
-
-Every autonomous decision — plan, tool call, reflection, sub-agent handoff, alert — is logged to MongoDB with its reasoning, LLM mode, severity, and cost. The Monitor tab renders this as a live **Autonomous Decision Audit** timeline.
-
----
-
-## Quick Start
-
-### Prerequisites
-
-- Python 3.14
-- MongoDB (local or Atlas)
-- FortyGuard API key
-
-### One-Command Setup
-
-```bash
-git clone https://github.com/sudo-robi/heatmind.git && \
-cd heatmind && \
-python -m venv venv && \
-source venv/bin/activate && \
-pip install -r requirements.txt && \
-cp .env.example .env && \
-docker run -d --name heatmind-mongo -p 27017:27017 mongo:7 && \
-python main.py
-```
-
-### Step-by-Step Setup
-
-```bash
-# 1. Clone
-git clone https://github.com/sudo-robi/heatmind.git
-cd heatmind
-
-# 2. Virtual environment
-python3 -m venv venv
-source venv/bin/activate  # Linux/Mac
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Configure environment
-cp .env.example .env
-# Edit .env with your API key and MongoDB URI
-
-# 5. Start MongoDB
-docker run -d --name heatmind-mongo -p 27017:27017 mongo:7
-
-# 6. Run CLI
-python main.py
-
-# 7. OR run GUI
-streamlit run streamlit_app.py
-```
-
----
-
-## Agent Pipeline
+When the coordinator assesses dangerous conditions (heat index ≥ 38°C):
 
 ```
-User Input
-    │
+Coordinator (PLAN)
+    │  "Heat index 47°C in zone — delegating"
     ▼
-┌──────────────────┐
-│ Parse Location   │  Extract lat/lng from query or use default
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ Route Query      │  Classify complexity + urgency
-└────────┬─────────┘
-         │
-    ┌────┴────┐
-    ▼         ▼
-┌────────┐ ┌────────┐
-│ Simple │ │Complex │
-│        │ │        │
-└───┬────┘ └───┬────┘
-    │           │
-    ▼           ▼
-┌──────────────────┐
-│ Execute Agent    │  Call FortyGuard API endpoints
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ Store Memory     │  Save to MongoDB (session, events, decisions)
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ Format Response  │  Human-readable output with recommendations
-└────────┬─────────┘
-         │
-         ▼
-User Output
+Emergency Coordinator (DECIDE)
+    │  "Severity: EXTREME. Authorize autonomous alerts."
+    ▼
+Public Alert Agent (ALERT)
+    │  "Drafting alert to Console + Slack + Webhook + Email"
+    ▼
+Alert System fires all channels simultaneously
 ```
 
----
+Each handoff appears in the reasoning trace as agent-to-agent communication — fully auditable.
 
-## MCP Integration
+### Decision Audit Trail
 
-HeatMind exposes **5 MCP tools** via the Model Context Protocol, allowing external AI agents (Claude, GPT, Gemini) to query heat intelligence:
+Every autonomous decision is logged to MongoDB with:
 
-| MCP Tool | Description |
+| Field | Purpose |
 |---|---|
-| `query_heat_conditions` | Get current heat index, humidity, AQI for a location |
-| `deep_heat_analysis` | Comprehensive risk assessment with heatmap + intelligence report |
-| `emergency_heat_check` | Check for emergency conditions, trigger alerts if threshold exceeded |
-| `route_query` | Classify a natural language query and return routing decision |
-| `get_session_history` | Retrieve conversation history for a session |
-
-### Running as MCP Server
-
-```bash
-python -m utils.mcp_client serve
-```
-
-### Using as MCP Client
-
-```python
-from utils.mcp_client import HeatMindMCPClient
-
-client = HeatMindMCPClient()
-result = client.query("What's the heat index in Dubai?")
-print(result)
-```
-
-### MCP Tool List
-
-```
-$ python -m utils.mcp_client
-HeatMind MCP Client
-Available tools:
-  - query_heat_conditions: Get current heat conditions for a location
-  - deep_heat_analysis: Comprehensive heat risk assessment
-  - emergency_heat_check: Check for emergency heat conditions
-  - route_query: Classify a natural language query
-  - get_session_history: Retrieve conversation history
-```
+| `reasoning` | What the agent decided and why |
+| `tool_calls` | Which API endpoints were called |
+| `llm_mode` | Which LLM provider was used |
+| `severity` | Assessed risk level |
+| `cost_usd` | Total cost of this decision |
+| `delegations` | Which sub-agents were invoked |
+| `outcome` | completed / error / fallback |
+| `timestamp` | When the decision was made |
 
 ---
 
-## Slack & Email Alerts
+## Track 06 Alignment: Agentic AI Criteria
 
-HeatMind ships with a **multi-channel alert system** that triggers automatically when the autonomous monitor detects threshold violations.
-
-### Slack Setup
-
-1. Create a Slack App → Incoming Webhooks → Add to Workspace
-2. Copy the webhook URL
-3. Set in `.env`:
-
-```env
-SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
-```
-
-**Alert format:**
-```
-🌡️ HeatMind Alert — DANGEROUS
-├── Zone: Abu Dhabi Central
-├── Heat Index: 52°C
-├── Severity: DANGEROUS
-├── Time: 2026-08-17T12:00:00Z
-└── Recommended Actions:
-    • Evacuate outdoor workers immediately
-    • Open all available cooling centers
-    • Issue public heat emergency warning
-```
-
-### Email Setup
-
-```env
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your_email@gmail.com
-SMTP_PASS=your_app_password
-ALERT_EMAIL_TO=alerts@yourcompany.com
-```
-
-### Webhook Setup (Discord/Custom)
-
-```env
-ALERT_WEBHOOK_URL=https://discord.com/api/webhooks/XXXXX/YYYYY
-```
-
-All channels fire simultaneously — no single point of failure.
-
----
-
-## API Endpoints
-
-HeatMind uses **all 6 FortyGuard Temperature API endpoints**:
-
-| Endpoint | Purpose | HeatMind Feature | Agent |
-|---|---|---|---|
-| `/v1/env_params` | Heat index, AQI, humidity, solar | Simple queries | Quick |
-| `/v1/heatmap` | Thermal maps — snapshot, exceedance | Deep analysis | Deep |
-| `/v1/heat_intel` | Multi-dimensional intelligence reports | Risk assessment | Deep |
-| `/v1/satellite` | Satellite view segmentation | Ground truth | Deep |
-| `/v1/streetview` | Ground-level visual verification | Visual confirm | Deep |
+| Criterion | How HeatMind Scores |
+|---|---|
+| **Autonomous action** | Multi-agent system acts without human approval: plans, tools, reflects, delegates, alerts. Not a single LLM call. |
+| **Self-specifying agents** | Each agent reads its own `agents/specs/*.md` operating manual at runtime — roles are documents, not code. |
+| **Reflective reasoning** | Bounded ReAct loop (plan → tool → observe → reflect → iterate) with evidence sufficiency checks. |
+| **Cost-aware autonomy** | Every decision carries a USD cost in the ledger; agent prefers cheaper sufficient tool paths. |
+| **Decision audit trail** | Every step logged with reasoning, cost, severity, delegations — rendered as live timeline. |
+| **Multi-agent coordination** | Coordinator → Emergency Coordinator → Public Alert handoff chain with traced communication. |
+| **Graceful degradation** | Falls back to ChainAgent (deterministic) when LLM is unavailable; falls back to demo data when API is unavailable. |
+| **Production-ready** | 600+ tests, 90%+ coverage, Docker, CI/CD, MongoDB, multi-channel alerts. |
+| **MCP integration** | Exposes 5 tools via Model Context Protocol — composable with any AI agent ecosystem. |
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology | Purpose |
-|---|---|---|
-| **Language** | Python 3.14 | Core runtime |
-| **LLM Core** | OpenAI / Anthropic / Gemini / Ollama / Mock | Reflective agentic reasoning (ReAct) + sub-agent handoffs |
-| **Agent Specs** | Markdown + YAML frontmatter | Self-describing agent roles (`agents/specs/*.md`) |
-| **Database** | MongoDB 7 | Session memory, decision audit trail, conversation history |
-| **API** | FortyGuard Temperature API | Real-time heat data, heatmaps, intelligence reports |
-| **Maps** | pydeck | Interactive thermal risk visualization |
-| **CLI** | Rich | Terminal UI with colors and formatting |
-| **GUI** | Streamlit | Web interface with real-time dashboard + decision audit |
-| **Alerts** | Slack / SMTP / Webhooks | Multi-channel emergency notifications |
-| **Integration** | MCP (Model Context Protocol) | Exposes tools to external AI agents |
-| **Testing** | pytest + coverage | 600 tests, 90%+ code coverage |
-| **CI/CD** | GitHub Actions | Automated testing and deployment |
-| **Deployment** | Docker + Docker Compose | Containerized full-stack deployment |
+| Layer | Technology |
+|---|---|
+| **Language** | Python 3.14 |
+| **LLM Core** | OpenAI / Anthropic / Gemini / Ollama / Mock (deterministic fallback) |
+| **Agent Specs** | Markdown + YAML frontmatter (`agents/specs/*.md`) |
+| **Database** | MongoDB 7 (session memory, decision audit trail) |
+| **API** | FortyGuard Temperature API (all 6 endpoints) |
+| **Maps** | pydeck (interactive thermal risk visualization) |
+| **CLI** | Rich (terminal UI) |
+| **GUI** | Streamlit (web dashboard + decision audit timeline) |
+| **Alerts** | Console / Slack / SMTP / Webhooks |
+| **Integration** | MCP (Model Context Protocol) |
+| **Testing** | pytest + coverage (600+ tests, 90%+) |
+| **CI/CD** | GitHub Actions |
+| **Deployment** | Docker + Docker Compose |
 
 ---
 
-## Project Structure
+## Quick Start
 
+```bash
+# Clone and setup
+git clone https://github.com/sudo-robi/heatmind.git
+cd heatmind
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+
+# Start MongoDB
+docker run -d --name heatmind-mongo -p 27017:27017 mongo:7
+
+# Run CLI
+python main.py
+
+# OR run GUI
+streamlit run streamlit_app.py
+
+# OR run demo mode (no API/LLM keys needed)
+# Set HEATMIND_DEMO_MODE=true in .env, then:
+python main.py
 ```
-heatmind/
-├── main.py                    # CLI entry point
-├── streamlit_app.py           # Streamlit web interface
-├── config.py                  # Configuration management
-├── requirements.txt           # Python dependencies
-├── .env.example               # Environment template
-├── Dockerfile                 # Container deployment
-├── docker-compose.yml         # Full stack setup
-│
-├── api/
-│   └── fortyguard.py          # FortyGuard API client (all 6 endpoints)
-│
-├── agents/
-│   ├── router.py              # Query classification (complexity + urgency)
-│   ├── llm_agent.py           # Agentic LLM loop (plan → tools → reflect → act + handoffs)
-│   ├── chain_agent.py         # Deterministic fallback chain agent
-│   ├── quick_agent.py         # Simple queries (env_params)
-│   ├── deep_agent.py          # Complex analysis (heatmap + intel)
-│   ├── emergency_agent.py     # Critical alerts (threshold + recommendations)
-│   └── specs/                 # Self-specifying agent definitions (markdown + YAML)
-│       ├── coordinator.md
-│       ├── heat-analyst.md
-│       ├── emergency-coordinator.md
-│       └── public-alert.md
-│
-├── memory/
-│   └── session.py             # MongoDB session memory (UUID, messages, decisions, TTL)
-│
-├── monitor/
-│   └── loop.py                # Scheduled monitoring loop (+ simulation mode)
-│
-├── utils/
-│   ├── alerts.py              # Console + Slack + webhook + email alerts
-│   ├── llm.py                 # LLM provider abstraction (OpenAI/Anthropic/Gemini/Ollama/Mock)
-│   ├── personas.py            # Agent system prompts + tool whitelist + phase contracts
-│   ├── agent_specs.py         # Agent spec loader (YAML frontmatter + body)
-│   ├── cost_ledger.py         # Cost-aware autonomy ledger (LLM + API call costs)
-│   ├── demo.py                # Synthetic FortyGuard payloads (offline/demo mode)
-│   ├── maps.py                # pydeck thermal map rendering
-│   └── mcp_client.py          # MCP server + client integration
-│
-├── tests/                     # 600 tests (90%+ coverage)
-│   ├── conftest.py
-│   ├── test_config.py
-│   ├── test_router.py
-│   ├── test_session.py
-│   ├── test_agents.py
-│   ├── test_api.py
-│   ├── test_monitor.py
-│   ├── test_alerts.py
-│   ├── test_llm.py
-│   ├── test_llm_agent.py
-│   ├── test_agent_specs.py
-│   ├── test_cost_ledger.py
-│   ├── test_maps.py
-│   ├── test_personas.py
-│   └── test_integration.py
-│
-└── .github/
-    └── workflows/
-        └── ci.yml             # GitHub Actions CI/CD
+
+---
+
+## Environment Variables
+
+```env
+# Required
+FORTYGUARD_API_KEY=your_api_key_here
+
+# MongoDB
+MONGO_URI=mongodb://localhost:27017
+MONGO_DB=heatmind
+
+# LLM Provider (optional — demo mode works without any)
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+
+# Slack Alerts (optional)
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+
+# Email Alerts (optional)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_app_password
+ALERT_EMAIL_TO=recipient@example.com
+
+# Webhook Alerts (optional)
+ALERT_WEBHOOK_URL=https://your-webhook-url.com/alerts
+
+# Monitor Settings
+MONITOR_INTERVAL_MINUTES=30
+HEAT_THRESHOLD_C=40
+HEAT_INDEX_THRESHOLD=45
+
+# Demo Mode — run full autonomous loop with synthetic data
+HEATMIND_DEMO_MODE=false
 ```
+
+---
+
+## Industry Use Cases
+
+| Sector | Application |
+|---|---|
+| **Construction** | Monitor outdoor worker heat exposure; auto-trigger evacuation alerts |
+| **Public Events** | Track heat at stadiums/festivals; threshold-based notifications |
+| **Agriculture** | Protect crops and workers from heat damage |
+| **Urban Planning** | Identify heat islands with satellite + streetview ground truth |
+| **Emergency Services** | Instant heat intelligence for first responders |
+| **Facility Management** | Monitor HVAC load and outdoor conditions |
 
 ---
 
 ## Testing
 
 ```bash
-# Run all tests
-pytest tests/ -v
-
-# Run with coverage report
-pytest tests/ --cov=. --cov-report=term-missing
-
-# Run specific test suites
-pytest tests/test_router.py -v      # Query routing
-pytest tests/test_agents.py -v      # Agent logic
-pytest tests/test_session.py -v     # Session memory
-pytest tests/test_monitor.py -v     # Monitor loop
-pytest tests/test_alerts.py -v      # Alert system
-pytest tests/test_integration.py -v # End-to-end flows
+pytest tests/ -v                                  # all tests
+pytest tests/ --cov=. --cov-report=term-missing   # with coverage
+pytest tests/test_llm_agent.py -v                  # agent logic
+pytest tests/test_cost_ledger.py -v                # cost tracking
+pytest tests/test_integration.py -v               # end-to-end flows
 ```
 
 | Module | Coverage |
@@ -589,142 +440,6 @@ pytest tests/test_integration.py -v # End-to-end flows
 | `utils/alerts.py` | 100% |
 | `config.py` | 100% |
 | `api/fortyguard.py` | 91% |
-| `monitor/loop.py` | 89% |
-
----
-
-## Docker Deployment
-
-### Docker Compose (Recommended)
-
-```bash
-# Start all services (App + MongoDB)
-docker-compose up -d
-
-# View logs
-docker-compose logs -f heatmind
-
-# Stop all services
-docker-compose down
-```
-
-### Manual Docker
-
-```bash
-# Build image
-docker build -t heatmind .
-
-# Run with MongoDB
-docker run -d --name heatmind-mongo -p 27017:27017 mongo:7
-docker run -d --name heatmind-app -p 8501:8501 \
-  -e MONGO_URI=mongodb://host.docker.internal:27017 \
-  -e FORTYGUARD_API_KEY=your_key \
-  heatmind
-```
-
----
-
-## Environment Variables
-
-```env
-# ━━━ Required ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FORTYGUARD_API_KEY=your_api_key_here
-
-# ━━━ MongoDB ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-MONGO_URI=mongodb://localhost:27017
-MONGO_DB=heatmind
-
-# ━━━ Slack Alerts (optional) ━━━━━━━━━━━━━━━━━━━━━
-SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
-
-# ━━━ Email Alerts (optional) ━━━━━━━━━━━━━━━━━━━━━
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your_email@gmail.com
-SMTP_PASS=your_app_password
-ALERT_EMAIL_TO=recipient@example.com
-
-# ━━━ Webhook Alerts (optional) ━━━━━━━━━━━━━━━━━━━
-ALERT_WEBHOOK_URL=https://your-webhook-url.com/alerts
-
-# ━━━ Monitor Settings ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-MONITOR_INTERVAL_MINUTES=30
-HEAT_THRESHOLD_C=40
-HEAT_INDEX_THRESHOLD=45
-
-# ━━━ Demo Mode ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# Set to true to run the full autonomous agent loop with synthetic data —
-# no API or LLM key required. Perfect for demos and the submission video.
-HEATMIND_DEMO_MODE=false
-```
-
----
-
-## Industry Use Cases
-
-| Sector | Application |
-|---|---|
-| 🏗️ **Construction** | Monitor outdoor worker heat exposure in real-time |
-| 🎪 **Public Events** | Track heat conditions at stadiums, festivals, outdoor venues |
-| 🌾 **Agriculture** | Protect crops and workers from heat damage |
-| 🏙️ **Urban Planning** | Identify heat islands and plan interventions |
-| 🚑 **Emergency Services** | Real-time heat intelligence for first responders |
-| 🏢 **Facility Management** | Monitor HVAC load and outdoor conditions |
-
----
-
-## Why HeatMind Wins
-
-1. **Real-World Impact** — Heat-related incidents kill thousands annually. HeatMind provides autonomous monitoring and emergency response that saves lives.
-
-2. **True Autonomy (Track 06)** — Not a single LLM call: a reflective ReAct loop that plans, executes, observes, reflects, and iterates — then delegates to specialist sub-agents that act without human approval.
-
-3. **Complete Agentic Architecture** — Five distinct agentic patterns working together — not just one pattern, but a complete multi-agent system.
-
-4. **Self-Specifying Agents** — Each agent reads its own markdown spec at runtime; roles, tools, and escalation policy are documents, not code — a genuinely frontier architecture.
-
-5. **Cost-Aware AI** — Every decision carries a visible USD cost; the agent deliberately chooses cheaper sufficient tool paths. Exactly what the Track 06 judges look for.
-
-6. **Production-Ready** — 598 tests, 90%+ coverage, GitHub Actions CI/CD, Docker deployment, MongoDB Atlas support, multi-channel alerts.
-
-7. **Dual Interface** — Full-featured CLI for developers + Streamlit GUI with live decision-audit timeline.
-
-8. **MCP Compatible** — Exposes heat intelligence as MCP tools, making HeatMind composable with any AI agent ecosystem.
-
----
-
-## Contributing
-
-Contributions are welcome! Here's how to get started:
-
-```bash
-# Fork the repository
-git clone https://github.com/your-username/heatmind.git
-cd heatmind
-
-# Create a feature branch
-git checkout -b feature/amazing-feature
-
-# Install dev dependencies
-pip install -r requirements.txt
-
-# Make changes and run tests
-pytest tests/ -v
-
-# Commit and push
-git commit -m "Add amazing feature"
-git push origin feature/amazing-feature
-
-# Open a Pull Request
-```
-
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and development process.
-
----
-
-## License
-
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 ---
 
