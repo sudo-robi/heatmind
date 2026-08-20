@@ -2,6 +2,7 @@ import logging
 
 from api.fortyguard import FortyGuardClient
 from memory.session import SessionMemory
+from utils.demo import demo_env_params, demo_heat_intelligence, demo_heatmap
 from utils.validation import flatten_location_data, validate_coords
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,10 @@ class ReasoningStep:
 
 class ChainAgent:
     def __init__(self, memory=None):
-        self.api = FortyGuardClient()
+        try:
+            self.api = FortyGuardClient()
+        except ValueError:
+            self.api = None
         self.memory = memory or SessionMemory()
 
     def execute_chain(
@@ -73,22 +77,26 @@ class ChainAgent:
             steps.append(step)
             try:
                 validate_coords(latitude, longitude)
-                activity_id = self.api.create_env_params(
-                    latitude=latitude,
-                    longitude=longitude,
-                    temperature=temperature,
-                    start_date=date,
-                    start_time=start_time,
-                    filter_type=1,
-                )
-                if activity_id:
-                    step.result = self.api.wait_for_result(activity_id)
-                    step.result = flatten_location_data(step.result)
+                if self.api is None:
+                    step.result = demo_env_params(latitude, longitude)
                     results["env_params"] = step.result
-                    if step.result:
-                        temperature = step.result.get("heat_index_celsius", temperature)
                 else:
-                    step.error = "API returned no activity_id"
+                    activity_id = self.api.create_env_params(
+                        latitude=latitude,
+                        longitude=longitude,
+                        temperature=temperature,
+                        start_date=date,
+                        start_time=start_time,
+                        filter_type=1,
+                    )
+                    if activity_id:
+                        step.result = self.api.wait_for_result(activity_id)
+                        step.result = flatten_location_data(step.result)
+                        results["env_params"] = step.result
+                        if step.result:
+                            temperature = step.result.get("heat_index_celsius", temperature)
+                    else:
+                        step.error = "API returned no activity_id"
             except Exception as e:
                 step.error = str(e)[:200]
 
@@ -102,18 +110,22 @@ class ChainAgent:
             )
             steps.append(step)
             try:
-                activity_id = self.api.create_heatmap(
-                    polygon_aoi=polygon_aoi,
-                    start_date=date,
-                    start_time=start_time,
-                    filter_type=1,
-                    granularity=params.get("granularity", 100),
-                )
-                if activity_id:
-                    step.result = self.api.wait_for_result(activity_id)
+                if self.api is None:
+                    step.result = demo_heatmap(latitude, longitude)
                     results["heatmap"] = step.result
                 else:
-                    step.error = "API returned no activity_id"
+                    activity_id = self.api.create_heatmap(
+                        polygon_aoi=polygon_aoi,
+                        start_date=date,
+                        start_time=start_time,
+                        filter_type=1,
+                        granularity=params.get("granularity", 100),
+                    )
+                    if activity_id:
+                        step.result = self.api.wait_for_result(activity_id)
+                        results["heatmap"] = step.result
+                    else:
+                        step.error = "API returned no activity_id"
             except Exception as e:
                 step.error = str(e)[:200]
 
@@ -127,18 +139,22 @@ class ChainAgent:
             )
             steps.append(step)
             try:
-                activity_id = self.api.create_heat_intelligence(
-                    latitude=latitude,
-                    longitude=longitude,
-                    temperature=temperature,
-                    date=date,
-                    analysis=["geographic", "environmental", "urban"],
-                )
-                if activity_id:
-                    step.result = self.api.wait_for_result(activity_id)
+                if self.api is None:
+                    step.result = demo_heat_intelligence(latitude, longitude)
                     results["heat_intelligence"] = step.result
                 else:
-                    step.error = "API returned no activity_id"
+                    activity_id = self.api.create_heat_intelligence(
+                        latitude=latitude,
+                        longitude=longitude,
+                        temperature=temperature,
+                        date=date,
+                        analysis=["geographic", "environmental", "urban"],
+                    )
+                    if activity_id:
+                        step.result = self.api.wait_for_result(activity_id)
+                        results["heat_intelligence"] = step.result
+                    else:
+                        step.error = "API returned no activity_id"
             except Exception as e:
                 step.error = str(e)[:200]
 
@@ -152,7 +168,7 @@ class ChainAgent:
             outcome="completed",
         )
 
-        api_calls = self.api.get_call_log()
+        api_calls = self.api.get_call_log() if self.api else []
 
         return {
             "agent": "chain",

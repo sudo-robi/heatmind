@@ -15,6 +15,7 @@ from config import (
 )
 from memory.session import SessionMemory
 from utils.anomaly import AnomalyDetector
+from utils.demo import demo_reading
 from utils.escalation import EscalationManager
 from utils.validation import flatten_location_data
 
@@ -22,8 +23,15 @@ logger = logging.getLogger(__name__)
 
 
 class MonitorLoop:
-    def __init__(self, memory=None):
-        self.api = FortyGuardClient()
+    def __init__(self, memory=None, simulate: bool = False):
+        if simulate:
+            self.api = None
+        else:
+            try:
+                self.api = FortyGuardClient()
+            except ValueError:
+                self.api = None
+        self.simulate = simulate
         self.memory = memory or SessionMemory()
         self.emergency_agent = EmergencyAgent(memory=self.memory)
         self.zones = []
@@ -44,6 +52,14 @@ class MonitorLoop:
 
     def check_zone(self, zone: dict) -> dict:
         date = datetime.now(UTC).strftime("%Y-%m-%d")
+
+        if self.simulate:
+            reading = demo_reading(zone["latitude"], zone["longitude"], zone["name"])
+            heat_index = reading["env_params"].get("heat_index_celsius", 0)
+            if heat_index > 0:
+                self._anomaly_detector.add_reading(zone["name"], heat_index, reading["timestamp"])
+            self.memory.log_event(self._system_session_id, "heat_reading", reading)
+            return reading
 
         heatmap_id = self.api.create_heatmap(
             polygon_aoi=zone["polygon_aoi"],

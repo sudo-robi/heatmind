@@ -50,7 +50,10 @@ and triggers multi-channel alerts when conditions become dangerous.
 
 | Feature | Description |
 |:---|:---|
+| 🤖 **Agentic LLM Core** | Plan → tool-call → observe → synthesize loop (OpenAI/Anthropic/Gemini/Ollama) with deterministic fallback |
 | 🧠 **Intelligent Query Routing** | Natural language queries classified by complexity and urgency, routed to the optimal agent |
+| 🗺️ **Live Thermal Maps** | Interactive pydeck heat-risk maps rendered from real FortyGuard heatmap GeoJSON |
+| 🧾 **Reasoning Trace** | Every answer ships with an inspectable step-by-step reasoning chain |
 | 🔄 **5 Agentic Patterns** | Session Memory, Query Router, Autonomous Monitor, Conversational Context, Emergency Response |
 | 🌐 **Dual Interface** | Full-featured CLI for developers + Streamlit GUI with real-time dashboard |
 | 🔔 **Multi-Channel Alerts** | Console, Slack, Email, Webhook — triggered autonomously when thresholds are exceeded |
@@ -70,15 +73,18 @@ and triggers multi-channel alerts when conditions become dangerous.
 │                                                                         │
 │   ┌─────────────┐    ┌──────────────┐    ┌─────────────────────────┐  │
 │   │             │    │              │    │                         │  │
-│   │  CLI / GUI  │───▶│ Query Router │───▶│   Agent Selection       │  │
+│   │  CLI / GUI  │───▶│ Query Router │───▶│   LLM Agent (Agentic)   │  │
 │   │  (User)     │    │              │    │                         │  │
-│   │             │    │ • Complexity │    │  ┌──────────┐           │  │
-│   └─────────────┘    │ • Urgency    │    │  │  Quick   │ ◀─ Simple │  │
-│                      │ • Confidence │    │  │  Agent   │  queries  │  │
-│                      └──────────────┘    │  └──────────┘           │  │
+│   │             │    │ • Complexity │    │  Plan → Tools → Observe  │  │
+│   └─────────────┘    │ • Urgency    │    │  → Synthesize → Act      │  │
+│                      │ • Confidence │    │                         │  │
+│                      └──────────────┘    │  ┌──────────┐           │  │
+│                                          │  │   LLM    │ ─────────┼──│──▶ OpenAI / Anthropic /
+│                                          │  │ Provider │  fallback│  │    Gemini / Ollama / Mock
+│                                          │  └──────────┘           │  │
 │                                          │  ┌──────────┐           │  │
-│                                          │  │  Deep    │ ◀─ Complex│  │
-│                                          │  │  Agent   │  queries  │  │
+│                                          │  │  Chain   │ ◀─ LLM   │  │
+│                                          │  │  Agent   │  down    │  │
 │                                          │  └──────────┘           │  │
 │                                          │  ┌──────────────┐       │  │
 │                                          │  │  Emergency   │       │  │
@@ -430,13 +436,15 @@ HeatMind uses **all 6 FortyGuard Temperature API endpoints**:
 | Layer | Technology | Purpose |
 |---|---|---|
 | **Language** | Python 3.14 | Core runtime |
+| **LLM Core** | OpenAI / Anthropic / Gemini / Ollama / Mock | Agentic reasoning, planning, synthesis |
 | **Database** | MongoDB 7 | Session memory, conversation history |
 | **API** | FortyGuard Temperature API | Real-time heat data, heatmaps, intelligence reports |
+| **Maps** | pydeck | Interactive thermal risk visualization |
 | **CLI** | Rich | Terminal UI with colors and formatting |
 | **GUI** | Streamlit | Web interface with real-time dashboard |
 | **Alerts** | Slack / SMTP / Webhooks | Multi-channel emergency notifications |
 | **Integration** | MCP (Model Context Protocol) | Exposes tools to external AI agents |
-| **Testing** | pytest + coverage | 460 tests, 90%+ code coverage |
+| **Testing** | pytest + coverage | 535 tests, 90%+ code coverage |
 | **CI/CD** | GitHub Actions | Automated testing and deployment |
 | **Deployment** | Docker + Docker Compose | Containerized full-stack deployment |
 
@@ -459,6 +467,8 @@ heatmind/
 │
 ├── agents/
 │   ├── router.py              # Query classification (complexity + urgency)
+│   ├── llm_agent.py           # Agentic LLM loop (plan → tools → synthesize)
+│   ├── chain_agent.py         # Deterministic fallback chain agent
 │   ├── quick_agent.py         # Simple queries (env_params)
 │   ├── deep_agent.py          # Complex analysis (heatmap + intel)
 │   └── emergency_agent.py     # Critical alerts (threshold + recommendations)
@@ -467,10 +477,14 @@ heatmind/
 │   └── session.py             # MongoDB session memory (UUID, messages, TTL)
 │
 ├── monitor/
-│   └── loop.py                # Scheduled monitoring loop
+│   └── loop.py                # Scheduled monitoring loop (+ simulation mode)
 │
 ├── utils/
 │   ├── alerts.py              # Console + Slack + webhook + email alerts
+│   ├── llm.py                 # LLM provider abstraction (OpenAI/Anthropic/Gemini/Ollama/Mock)
+│   ├── personas.py            # Agent system prompts + tool whitelist
+│   ├── demo.py                # Synthetic FortyGuard payloads (offline/demo mode)
+│   ├── maps.py                # pydeck thermal map rendering
 │   └── mcp_client.py          # MCP server + client integration
 │
 ├── tests/                     # 460 tests (90%+ coverage)

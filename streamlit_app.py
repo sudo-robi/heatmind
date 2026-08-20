@@ -12,12 +12,11 @@ import streamlit as st
 sys.path.insert(0, os.path.dirname(__file__))
 
 import config as _config
-from agents.deep_agent import DeepAgent
-from agents.emergency_agent import EmergencyAgent
-from agents.quick_agent import QuickAgent
+from agents.llm_agent import LLMAgent
 from agents.router import route_query
 from config import HEAT_INDEX_THRESHOLD, HEAT_THRESHOLD_C, MONITOR_INTERVAL_MINUTES
 from memory.session import SessionMemory
+from utils.maps import render_heat_map, render_zones_map
 
 FORTYGUARD_API_KEY = _config.FORTYGUARD_API_KEY
 if not FORTYGUARD_API_KEY:
@@ -318,6 +317,68 @@ def render_msg_metadata(msg):
             )
 
 
+def render_llm_badge(msg):
+    """Show the LLM mode (live/mock/fallback) as a badge on the message."""
+    mode = msg.get("llm_mode")
+    if not mode:
+        return
+    if mode == "fallback":
+        color = C["yellow"]
+        label = "Deterministic Fallback"
+    elif mode == "mock":
+        color = C["cyan"]
+        label = "LLM Ready (mock)"
+    else:
+        color = C["purple"]
+        label = f"LLM · {mode}"
+    st.markdown(
+        f'<div class="sentiment-pill" style="background:{color}15;color:{color};border:1px solid {color}40;">{svg("brain")} {label}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_reasoning_trace(msg):
+    """Collapsible agent reasoning trace panel."""
+    trace = msg.get("reasoning")
+    if not trace:
+        return
+    with st.expander(f"🧠 Agent Reasoning Trace ({len(trace)} steps)", expanded=False):
+        for step in trace:
+            status = step.get("status", "pending")
+            icon = "✅" if status == "success" else "⚠️" if status in ("error", "skipped") else "⏳"
+            color = C["green"] if status == "success" else C["yellow"] if status == "skipped" else C["red"]
+            st.markdown(
+                f"""<div style="border-left:3px solid {color};padding:8px 12px;margin:6px 0;background:{C["surface"]};border-radius:0 8px 8px 0;">
+                <div style="font-weight:700;color:{C["text"]};font-size:0.9rem;">{icon} Step {step.get("step", "?")} — {step.get("action", "")}</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:{C["text_dim"]};">{step.get("endpoint", "")}</div>
+                <div style="color:{C["text_muted"]};font-size:0.82rem;margin-top:2px;">{step.get("reason", "")}</div>
+                <div style="color:{color};font-size:0.82rem;margin-top:2px;">{step.get("result_summary", "")}</div>
+            </div>""",
+                unsafe_allow_html=True,
+            )
+
+
+def render_message_map(msg):
+    """Live heatmap map for a chat message, when data is available."""
+    map_data = msg.get("map_data")
+    if not map_data or not isinstance(map_data, dict):
+        return
+    lat = map_data.get("latitude")
+    lng = map_data.get("longitude")
+    if lat is None or lng is None:
+        return
+    deck = render_heat_map(
+        lat=lat,
+        lng=lng,
+        zone=map_data.get("zone", "Location"),
+        heatmap_result=map_data.get("heatmap"),
+        heat_index=map_data.get("heat_index"),
+    )
+    if deck is not None:
+        with st.expander("🗺️ Live Thermal Map", expanded=False):
+            st.pydeck_chart(deck)
+
+
 def display_error(error_type, message, context=""):
     configs = {
         "CONNECTION_ERROR": {
@@ -459,17 +520,20 @@ def handle_query(query):
         }
     start = time.time()
     try:
-        agent = {"quick": QuickAgent, "deep": DeepAgent, "emergency": EmergencyAgent}.get(routing.agent, QuickAgent)()
-        result = agent.handle(query, sid, params)
+        result = LLMAgent(memory=memory).handle(query, sid, params)
         ms = (time.time() - start) * 1000
         memory.log_decision(sid, query, routing.agent, routing.reasoning, "completed")
         return {
             "response": result.get("response", "No response."),
-            "agent": routing.agent,
+            "agent": result.get("agent", routing.agent),
             "complexity": routing.complexity.value,
-            "response_time_ms": ms,
+            "response_time_ms": result.get("response_time_ms", ms),
             "complexity_score": 0.5,
             "sentiment_score": 0.1,
+            "reasoning": result.get("reasoning"),
+            "llm_mode": result.get("llm_mode"),
+            "map_data": result.get("map_data"),
+            "severity": result.get("severity"),
         }
     except Exception as e:
         return {
@@ -817,6 +881,9 @@ def main():
                 st.markdown(msg["content"])
                 if msg["role"] == "assistant":
                     render_msg_metadata(msg)
+                    render_llm_badge(msg)
+                    render_reasoning_trace(msg)
+                    render_message_map(msg)
 
         if prompt := st.chat_input("Ask about heat conditions..."):
             user_msg = {"role": "user", "content": prompt}
@@ -880,6 +947,10 @@ def main():
                 "escalated": result.get("escalated", False),
                 "escalation_reason": result.get("escalation_reason", ""),
                 "ticket_id": result.get("ticket_id", ""),
+                "reasoning": result.get("reasoning"),
+                "llm_mode": result.get("llm_mode"),
+                "map_data": result.get("map_data"),
+                "severity": result.get("severity"),
                 "timestamp": datetime.now(UTC).isoformat(),
             }
             st.session_state.messages.append(assistant_msg)
@@ -888,6 +959,9 @@ def main():
             with st.chat_message("assistant"):
                 st.markdown(result["response"])
                 render_msg_metadata(assistant_msg)
+                render_llm_badge(assistant_msg)
+                render_reasoning_trace(assistant_msg)
+                render_message_map(assistant_msg)
 
     with tab_dashboard:
         st.markdown(
@@ -1053,6 +1127,14 @@ def main():
                 )
 
         st.markdown("")
+        st.markdown(f'<div class="section-header">{svg("map")} Zone Map</div>', unsafe_allow_html=True)
+        zones_map = render_zones_map(zones)
+        if zones_map is not None:
+            st.pydeck_chart(zones_map)
+        else:
+            st.caption("Install pydeck (`pip install pydeck`) to enable the live zone map.")
+
+        st.markdown("")
         st.markdown(f'<div class="section-header">{svg("alert")} Alert Feed</div>', unsafe_allow_html=True)
         alert_zones = [z for z in zones if z["status"] == "alert"]
         if not alert_zones:
@@ -1087,6 +1169,42 @@ def main():
                 </div>""",
                     unsafe_allow_html=True,
                 )
+
+    if st.button("Run Simulated Emergency Drill", key="drill", use_container_width=True):
+        from agents.emergency_agent import EmergencyAgent
+        from utils.demo import demo_env_params
+
+        with st.spinner("Running autonomous emergency drill..."):
+            drill_zone = "Phoenix, AZ"
+            drill = EmergencyAgent(memory=st.session_state.memory)
+            result = drill.handle(
+                query="Emergency detected in Phoenix — extreme heat conditions",
+                session_id=st.session_state.session_id,
+                params={
+                    "latitude": 33.4484,
+                    "longitude": -112.0740,
+                    "date": datetime.now().strftime("%Y-%m-%d"),
+                    "zone": drill_zone,
+                    "temperature": demo_env_params(33.4484, -112.0740).get("heat_index_celsius", 46.0),
+                },
+            )
+        if "error" in result:
+            st.error(result["error"])
+        else:
+            st.markdown(
+                f"""<div class="alert-card">
+                    <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:1.1rem;">{svg("siren")} {drill_zone} — Drill Complete</div>
+                    <div style="margin-top:8px;opacity:0.95;">Severity: <strong>{result.get("severity", "unknown").upper()}</strong> · LLM mode: <strong>{result.get("llm_mode", "n/a")}</strong></div>
+                </div>""",
+                unsafe_allow_html=True,
+            )
+            st.markdown(result.get("response", ""))
+            if result.get("recommendations"):
+                st.markdown("**Generated Recommendations:**")
+                for i, rec in enumerate(result["recommendations"], 1):
+                    st.markdown(f"{i}. {rec}")
+            with st.expander("Drill Alert Payload", expanded=False):
+                st.json(result.get("raw_data", {}))
 
     # ── Footer ──
     st.markdown("")

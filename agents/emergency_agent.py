@@ -1,18 +1,28 @@
+import logging
 import time
 from datetime import UTC, datetime
 
 from api.fortyguard import FortyGuardClient
 from memory.session import SessionMemory
 from utils.alerts import send_alert
+from utils.demo import demo_env_params
 from utils.escalation import EscalationManager
+from utils.llm import LLMError, MockLLM, extract_json, get_llm, timed_complete
 from utils.metrics import get_metrics
 from utils.middleware import HistoryMiddleware
+from utils.personas import HEALTH_OFFICER_PERSONA
 from utils.validation import flatten_location_data, validate_coords
+
+logger = logging.getLogger(__name__)
 
 
 class EmergencyAgent:
-    def __init__(self, memory=None):
-        self.api = FortyGuardClient()
+    def __init__(self, memory=None, llm=None):
+        try:
+            self.api = FortyGuardClient()
+        except ValueError:
+            self.api = None
+        self.llm = llm or get_llm()
         self.memory = memory or SessionMemory()
         self._middleware = HistoryMiddleware(self.memory)
         self._escalation = EscalationManager()
@@ -36,26 +46,28 @@ class EmergencyAgent:
 
         self._middleware.enrich_context(session_id, query)
 
-        env_id = self.api.create_env_params(
-            latitude=latitude,
-            longitude=longitude,
-            temperature=temperature,
-            start_date=date,
-            start_time=params.get("time", "14:00"),
-            filter_type=1,
-        )
-
         env_data = {}
-        if env_id:
-            raw = self.api.wait_for_result(env_id)
-            env_data = flatten_location_data(raw)
+        if self.api is not None:
+            env_id = self.api.create_env_params(
+                latitude=latitude,
+                longitude=longitude,
+                temperature=temperature,
+                start_date=date,
+                start_time=params.get("time", "14:00"),
+                filter_type=1,
+            )
+            if env_id:
+                raw = self.api.wait_for_result(env_id)
+                env_data = flatten_location_data(raw)
+        else:
+            env_data = demo_env_params(latitude, longitude)
 
         heat_index = env_data.get("heat_index_celsius", temperature)
         if isinstance(heat_index, list):
             heat_index = heat_index[0]
         severity = self._assess_severity(heat_index, env_data)
 
-        recommendations = self._generate_recommendations(severity, env_data)
+        recommendations = self._generate_recommendations(severity, env_data, heat_index, zone)
 
         alert_payload = {
             "zone": zone,
@@ -95,7 +107,9 @@ class EmergencyAgent:
             "severity": severity,
             "response": response,
             "raw_data": {"env_params": env_data, "alert": alert_payload},
-            "api_calls": self.api.get_call_log(),
+            "api_calls": self.api.get_call_log() if self.api else [],
+            "llm_mode": self.llm.name,
+            "recommendations": recommendations,
         }
 
     def _assess_severity(self, heat_index: float, env_data: dict) -> str:
@@ -109,7 +123,37 @@ class EmergencyAgent:
             return "warning"
         return "normal"
 
-    def _generate_recommendations(self, severity: str, env_data: dict) -> list:
+    def _generate_recommendations(
+        self, severity: str, env_data: dict, heat_index: float | None = None, zone: str = ""
+    ) -> list:
+        fallback = self._hardcoded_recommendations(severity)
+
+        if isinstance(self.llm, MockLLM):
+            return fallback
+
+        system = (
+            f"{HEALTH_OFFICER_PERSONA}\n\n"
+            "Respond with ONLY a JSON array of 3-5 specific, actionable recommendations "
+            "for the given heat emergency. No prose."
+        )
+        user = (
+            f"Zone: {zone}\nSeverity: {severity}\nHeat index: {heat_index}°C\n"
+            f"Humidity: {env_data.get('relative_humidity_percent', 'n/a')}%\n"
+            f"AQI: {env_data.get('air_quality:idx', 'n/a')}\n"
+            "Recommendations:"
+        )
+        try:
+            text, _ms = timed_complete(self.llm, system, user, max_tokens=300, temperature=0.3)
+            parsed = extract_json(text)
+            items = parsed if isinstance(parsed, list) else parsed.get("recommendations", [])
+            if isinstance(items, list) and items:
+                return [str(r)[:160] for r in items[:5]]
+        except LLMError as e:
+            logger.warning("LLM recommendations failed, using fallback: %s", e)
+
+        return fallback
+
+    def _hardcoded_recommendations(self, severity: str) -> list:
         recommendations = []
         if severity in ("extreme", "dangerous"):
             recommendations.extend(

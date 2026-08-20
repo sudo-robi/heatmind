@@ -26,6 +26,13 @@ FORTYGUARD_API_KEY = os.getenv("FORTYGUARD_API_KEY", "")
 MONGO_URI = os.getenv("MONGO_URI", "")
 
 
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "").lower()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "")
+LLM_MODEL = os.getenv("LLM_MODEL", "")
+
 ALERT_WEBHOOK_URL = os.getenv("ALERT_WEBHOOK_URL", "")
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "")
 

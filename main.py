@@ -5,7 +5,7 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.table import Table
 
-from agents.chain_agent import ChainAgent
+from agents.llm_agent import LLMAgent
 from agents.nlp_parser import parse_query
 from config import FORTYGUARD_API_KEY
 from memory.session import SessionMemory
@@ -69,13 +69,18 @@ def handle_query(query: str, session_id: str, memory: SessionMemory) -> str:
         "temperature": 35.0,
     }
 
-    chain_agent = ChainAgent(memory=memory)
-    result = chain_agent.execute_chain(
+    agent = LLMAgent(memory=memory)
+    result = agent.handle(
         query=query,
         session_id=session_id,
-        endpoints=parsed.endpoints_needed,
         params=params,
     )
+
+    if result.get("llm_mode"):
+        console.print(
+            f"[dim]LLM mode: {result['llm_mode']}"
+            + (f" (fallback: {result['fallback_reason']})[/dim]" if result.get("fallback_reason") else "[/dim]")
+        )
 
     if result.get("reasoning"):
         table = Table(title="Reasoning Chain", show_header=True, header_style="bold cyan")
@@ -123,7 +128,9 @@ def interactive_mode():
 
         if query.lower() == "monitor":
             console.print("[yellow]Starting monitor loop (Ctrl+C to stop)...[/yellow]")
-            loop = MonitorLoop(memory=memory)
+            loop = MonitorLoop(memory=memory, simulate=not FORTYGUARD_API_KEY)
+            if not FORTYGUARD_API_KEY:
+                console.print("[yellow]No API key — running simulated monitor.[/yellow]")
             loop.add_zone(
                 name="New York Downtown",
                 polygon_aoi=build_polygon_aoi(40.7128, -74.0060),
