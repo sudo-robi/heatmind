@@ -44,3 +44,18 @@ Thumbs.db
 data/db/
 .~lock.README.md#
 .vercel
+
+# Node (demo script deps)
+node_modules/
+package.json
+package-lock.json
+
+# Media (not part of submission)
+*.png
+*.jpg
+*.jpeg
+*.webm
+*.mp4
+*.mov
+*.gif
+screenshots/
